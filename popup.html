@@ -2,135 +2,238 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <title>RoomCloud Auditor</title>
   <style>
     body {
       width: 400px;
+      min-height: 500px;
+      margin: 0;
       padding: 15px;
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
     }
+    
     .header {
       text-align: center;
       margin-bottom: 20px;
-      color: #333;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
     }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .header p {
+      margin: 5px 0 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
     .button {
       width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      background-color: #4CAF50;
-      color: white;
+      padding: 12px;
+      margin: 8px 0;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
+    
     .button:hover {
-      background-color: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
+    
     .button:disabled {
-      background-color: #cccccc;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
+    
+    .primary-button {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+    }
+    
+    .secondary-button {
+      background: linear-gradient(45deg, #2196F3, #1976D2);
+      color: white;
+    }
+    
+    .danger-button {
+      background: linear-gradient(45deg, #f44336, #d32f2f);
+      color: white;
+    }
+    
+    .warning-button {
+      background: linear-gradient(45deg, #ff9800, #f57c00);
+      color: white;
+    }
+    
     .status {
-      margin-top: 10px;
       padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+      display: none;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(5px);
+    }
+    
+    .progress-container {
+      margin: 15px 0;
+      display: none;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
       border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #45a049);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    
+    .progress-text {
       font-size: 12px;
+      text-align: center;
+      opacity: 0.9;
+      display: none;
     }
-    .status.success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+    
+    .audit-summary {
+      margin: 15px 0;
+      display: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px;
+      backdrop-filter: blur(5px);
     }
-    .status.error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+    
+    .audit-summary h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #4CAF50;
     }
-    .status.info {
-      background-color: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
+    
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    
+    .button-group .button {
+      flex: 1;
+    }
+    
+    .info-box {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 12px;
+      backdrop-filter: blur(5px);
+    }
+    
+    .info-box h4 {
+      margin: 0 0 5px 0;
+      color: #FFD700;
+    }
+    
+    .info-box p {
+      margin: 3px 0;
+      opacity: 0.9;
+    }
+    
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+    
+    .download-link {
+      display: inline-block;
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #cccccc;
+      color: #666;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    
+    .download-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h3>🏨 RoomCloud Auditor</h3>
+    <h1>🏨 RoomCloud Auditor</h1>
+    <p>Auditoría automatizada de hoteles</p>
   </div>
   
-  <button id="autoAudit" class="button" style="background-color: #9C27B0;">🤖 Auditoría Automatizada Completa</button>
-  
-  <div style="display: flex; gap: 5px;">
-    <a id="downloadCSV" href="#" style="flex: 1; text-decoration: none; text-align: center; padding: 10px; margin: 5px 0; background-color: #cccccc; color: #666; border: none; border-radius: 4px; cursor: not-allowed; pointer-events: none;">Descargar CSV</a>
-    <button id="clearData" class="button" style="flex: 1; background-color: #f44336;">Limpiar</button>
+  <div class="info-box">
+    <h4>💡 Información</h4>
+    <p>• Debes estar en RoomCloud para usar la extensión</p>
+    <p>• La auditoría toma varios minutos</p>
+    <p>• Los datos se guardan automáticamente</p>
   </div>
   
-  <div id="status" class="status info" style="display: none;">
-    Listo para auditar
+  <button id="autoAuditButton" class="button primary-button">
+    🚀 Auditoría Automatizada Completa
+  </button>
+  
+  <button id="openInTabButton" class="button secondary-button" style="display: none;">
+    📋 Abrir en Nueva Pestaña
+  </button>
+  
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressBar"></div>
+    </div>
+    <div class="progress-text" id="progressText"></div>
   </div>
   
-  <!-- Sección de auditoría semiautomática -->
-  <div id="auditSection" style="display: none; margin-top: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">🔍 Auditoría en Progreso:</h4>
-    
-    <!-- Barra de progreso -->
-    <div style="margin-bottom: 10px;">
-      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #666;">
-        <span id="currentPage">Página 1 de 10</span>
-        <span id="progressPercent">10%</span>
-      </div>
-      <div style="width: 100%; background-color: #e0e0e0; border-radius: 4px; height: 8px;">
-        <div id="progressBar" style="width: 10%; height: 100%; background-color: #4CAF50; border-radius: 4px; transition: width 0.3s;"></div>
-      </div>
-    </div>
-    
-    <!-- Página actual -->
-    <div style="margin-bottom: 10px; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 12px;">
-      <strong>Página actual:</strong> <span id="currentPageName">Detalles del Hotel</span>
-    </div>
-    
-    <!-- Estado de extracción -->
-    <div id="extractionStatus" style="margin-bottom: 10px; padding: 8px; background-color: #fff3cd; border-radius: 4px; font-size: 12px; display: none;">
-      <strong>Estado:</strong> <span id="extractionStatusText">Esperando confirmación...</span>
-    </div>
-    
-    <!-- Datos extraídos de la página actual -->
-    <div id="currentPageData" style="margin-bottom: 10px; max-height: 100px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; border-radius: 4px; font-size: 11px; display: none;">
-      <strong>Datos extraídos de esta página:</strong>
-      <div id="currentPageDataContent"></div>
-    </div>
-    
-    <!-- Controles de auditoría -->
-    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-      <button id="confirmData" class="button" style="flex: 1; background-color: #4CAF50; font-size: 11px;">✅ Extraer Datos</button>
-      <button id="nextPage" class="button" style="flex: 1; background-color: #2196F3; font-size: 11px;">⏭️ Siguiente Página</button>
-    </div>
-    
-    <!-- Lista de páginas -->
-    <div style="max-height: 120px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; background-color: #f9f9f9; border-radius: 4px; font-size: 10px;">
-      <div id="pagesList">
-        <!-- Lista de páginas se generará aquí -->
-      </div>
-    </div>
-  </div>
+  <div id="status" class="status"></div>
   
-  <!-- Sección de vista previa de datos -->
-  <div id="dataPreview" style="display: none; margin-top: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">📊 Datos Extraídos:</h4>
-    <div id="extractedData" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; border-radius: 4px; font-size: 11px; line-height: 1.4;">
-      <!-- Los datos se mostrarán aquí -->
-    </div>
-    <div style="margin-top: 10px; font-size: 11px; color: #666;">
-      <span id="dataCount">0</span> registros extraídos
-    </div>
-  </div>
+  <div class="audit-summary" id="auditSummary"></div>
   
-  <!-- Sección de resumen final -->
-  <div id="auditSummary" style="display: none; margin-top: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">📋 Resumen de Auditoría:</h4>
-    <div id="summaryContent" style="border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 11px; line-height: 1.4;">
-      <!-- El resumen se mostrará aquí -->
-    </div>
+  <div class="button-group">
+    <a id="downloadCSV" href="#" class="download-link">
+      📥 Descargar CSV
+    </a>
+    <button id="clearData" class="button danger-button">
+      🗑️ Limpiar
+    </button>
   </div>
   
   <script src="popup.js"></script>

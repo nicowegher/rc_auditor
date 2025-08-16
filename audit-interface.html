@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>RoomCloud Auditor - Interfaz Completa</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 36px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .header p {
+      margin: 10px 0 0 0;
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    
+    .status-card {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      backdrop-filter: blur(5px);
+    }
+    
+    .status-card h3 {
+      margin: 0 0 15px 0;
+      color: #FFD700;
+      font-size: 20px;
+    }
+    
+    .progress-container {
+      margin: 20px 0;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #45a049);
+      border-radius: 6px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+    
+    .progress-text {
+      font-size: 16px;
+      text-align: center;
+      opacity: 0.9;
+      font-weight: 600;
+    }
+    
+    .button {
+      padding: 15px 30px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 200px;
+    }
+    
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    
+    .button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .primary-button {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+    }
+    
+    .secondary-button {
+      background: linear-gradient(45deg, #2196F3, #1976D2);
+      color: white;
+    }
+    
+    .danger-button {
+      background: linear-gradient(45deg, #f44336, #d32f2f);
+      color: white;
+    }
+    
+    .warning-button {
+      background: linear-gradient(45deg, #ff9800, #f57c00);
+      color: white;
+    }
+    
+    .status {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 8px;
+      font-size: 16px;
+      text-align: center;
+      display: none;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(5px);
+      font-weight: 600;
+    }
+    
+    .audit-summary {
+      margin: 20px 0;
+      display: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(5px);
+    }
+    
+    .audit-summary h3 {
+      margin: 0 0 15px 0;
+      font-size: 24px;
+      color: #4CAF50;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin: 20px 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .info-box {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      font-size: 16px;
+      backdrop-filter: blur(5px);
+    }
+    
+    .info-box h4 {
+      margin: 0 0 10px 0;
+      color: #FFD700;
+      font-size: 20px;
+    }
+    
+    .info-box p {
+      margin: 8px 0;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+    
+    .download-link {
+      display: inline-block;
+      padding: 15px 30px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #cccccc;
+      color: #666;
+      cursor: not-allowed;
+      text-decoration: none;
+      min-width: 200px;
+    }
+    
+    .download-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    
+    .download-link.active {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      cursor: pointer;
+    }
+    
+    .steps-list {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      backdrop-filter: blur(5px);
+    }
+    
+    .steps-list h4 {
+      margin: 0 0 15px 0;
+      color: #FFD700;
+      font-size: 18px;
+    }
+    
+    .step-item {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      padding: 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .step-item.completed {
+      background: rgba(76, 175, 80, 0.2);
+    }
+    
+    .step-item.current {
+      background: rgba(255, 193, 7, 0.2);
+    }
+    
+    .step-icon {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+    
+    .step-text {
+      flex: 1;
+      font-size: 14px;
+    }
+    
+    .step-status {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        margin: 10px;
+        padding: 20px;
+      }
+      
+      .header h1 {
+        font-size: 28px;
+      }
+      
+      .button-group {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .button, .download-link {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏨 RoomCloud Auditor</h1>
+      <p>Interfaz completa de auditoría automatizada</p>
+    </div>
+    
+    <div class="info-box">
+      <h4>💡 Información</h4>
+      <p>• Esta interfaz permanece abierta durante toda la auditoría</p>
+      <p>• Puedes ver el progreso en tiempo real</p>
+      <p>• Los datos se guardan automáticamente</p>
+      <p>• Puedes cerrar esta pestaña y volver al popup</p>
+    </div>
+    
+    <div class="status-card">
+      <h3>🎯 Estado de la Auditoría</h3>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div class="progress-text" id="progressText">Esperando inicio...</div>
+      </div>
+    </div>
+    
+    <div class="steps-list" id="stepsList">
+      <h4>📋 Pasos de la Auditoría</h4>
+      <div id="stepsContent">
+        <!-- Los pasos se generarán dinámicamente -->
+      </div>
+    </div>
+    
+    <div id="status" class="status"></div>
+    
+    <div class="audit-summary" id="auditSummary"></div>
+    
+    <div class="button-group">
+      <button id="autoAuditButton" class="button primary-button">
+        🚀 Iniciar Auditoría Automatizada
+      </button>
+      <a id="downloadCSV" href="#" class="download-link">
+        📥 Descargar CSV
+      </a>
+      <button id="clearData" class="button danger-button">
+        🗑️ Limpiar Datos
+      </button>
+    </div>
+  </div>
+  
+  <script src="audit-interface.js"></script>
+</body>
+</html>

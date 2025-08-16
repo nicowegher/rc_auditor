@@ -3,7 +3,7 @@ let extractedData = [];
 let currentAuditState = {
   isRunning: false,
   currentStep: 0,
-  totalSteps: 10,
+  totalSteps: 9,
   progress: 0,
   startTime: null,
   lastUpdate: null
@@ -75,7 +75,7 @@ function updateUI() {
   const auditSummary = document.getElementById('auditSummary');
   const progressBar = document.getElementById('progressBar');
   const progressText = document.getElementById('progressText');
-  const openInTabButton = document.getElementById('openInTabButton');
+  const progressContainer = document.getElementById('progressContainer');
   
   if (currentAuditState.isRunning) {
     // Auditoría en progreso
@@ -86,45 +86,34 @@ function updateUI() {
     }
     
     // Mostrar progreso
-    if (progressBar && progressText) {
+    if (progressBar && progressText && progressContainer) {
       const progress = (currentAuditState.currentStep / currentAuditState.totalSteps) * 100;
       progressBar.style.width = `${progress}%`;
-      progressText.textContent = `Paso ${currentAuditState.currentStep + 1} de ${currentAuditState.totalSteps}`;
-      progressBar.style.display = 'block';
-      progressText.style.display = 'block';
-    }
-    
-    // Mostrar botón para abrir en pestaña
-    if (openInTabButton) {
-      openInTabButton.style.display = 'block';
+      progressText.textContent = `Paso ${currentAuditState.currentStep + 1} de ${currentAuditState.totalSteps} - ${auditPages[currentAuditState.currentStep]?.name || 'Procesando...'}`;
+      progressContainer.style.display = 'block';
     }
     
   } else {
     // Auditoría no en progreso
     if (autoAuditButton) {
-      autoAuditButton.textContent = 'Auditoría Automatizada Completa';
+      autoAuditButton.textContent = '🚀 Iniciar Auditoría Automatizada';
       autoAuditButton.disabled = false;
-      autoAuditButton.style.backgroundColor = '#4CAF50';
+      autoAuditButton.style.backgroundColor = '';
     }
     
-    // Ocultar progreso
-    if (progressBar && progressText) {
-      progressBar.style.display = 'none';
-      progressText.style.display = 'none';
-    }
-    
-    // Ocultar botón de pestaña
-    if (openInTabButton) {
-      openInTabButton.style.display = 'none';
+    // Ocultar progreso si no hay auditoría en curso
+    if (progressContainer && currentAuditState.currentStep === 0) {
+      progressContainer.style.display = 'none';
     }
   }
   
   // Habilitar descarga si hay datos
   if (downloadLink && extractedData.length > 0) {
-    downloadLink.style.backgroundColor = '#4CAF50';
-    downloadLink.style.color = 'white';
+    downloadLink.classList.add('active');
     downloadLink.style.cursor = 'pointer';
-    downloadLink.style.pointerEvents = 'auto';
+  } else {
+    downloadLink.classList.remove('active');
+    downloadLink.style.cursor = 'not-allowed';
   }
   
   // Mostrar resumen si hay datos
@@ -132,13 +121,43 @@ function updateUI() {
     auditSummary.innerHTML = generateAuditSummary(extractedData);
     auditSummary.style.display = 'block';
   }
+  
+  // Actualizar lista de pasos
+  updateStepsList();
 }
 
-// Función para abrir interfaz en nueva pestaña
-function openInNewTab() {
-  chrome.tabs.create({
-    url: chrome.runtime.getURL('audit-interface.html')
+// Función para actualizar la lista de pasos
+function updateStepsList() {
+  const stepsContent = document.getElementById('stepsContent');
+  if (!stepsContent) return;
+  
+  let html = '';
+  
+  auditPages.forEach((page, index) => {
+    let icon = '⏳';
+    let status = 'Pendiente';
+    let className = '';
+    
+    if (index < currentAuditState.currentStep) {
+      icon = '✅';
+      status = 'Completado';
+      className = 'completed';
+    } else if (index === currentAuditState.currentStep && currentAuditState.isRunning) {
+      icon = '🔄';
+      status = 'En progreso...';
+      className = 'current';
+    }
+    
+    html += `
+      <div class="step-item ${className}">
+        <div class="step-icon">${icon}</div>
+        <div class="step-text">${page.name}</div>
+        <div class="step-status">${status}</div>
+      </div>
+    `;
   });
+  
+  stepsContent.innerHTML = html;
 }
 
 // Función para generar resumen de auditoría
@@ -159,16 +178,16 @@ function generateAuditSummary(data) {
     });
   });
   
-  let summary = '<div style="max-height: 300px; overflow-y: auto; padding: 10px; background: #f9f9f9; border-radius: 5px;">';
+  let summary = '<div style="max-height: 400px; overflow-y: auto; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">';
   
   // Hotel
   if (consolidatedData.nombre_hotel) {
-    summary += `<h3 style="color: #2196F3; margin: 10px 0;">🏨 Hotel: ${consolidatedData.nombre_hotel}</h3>`;
+    summary += `<h3 style="color: #2196F3; margin: 15px 0;">🏨 Hotel: ${consolidatedData.nombre_hotel}</h3>`;
   }
   
   // Disponibilidad
   if (consolidatedData.moneda_carga || consolidatedData.tarifa_mas_baja_usd || consolidatedData.cierres_parciales) {
-    summary += `<h4 style="color: #4CAF50; margin: 8px 0;">📊 Disponibilidad</h4>`;
+    summary += `<h4 style="color: #4CAF50; margin: 12px 0;">📊 Disponibilidad</h4>`;
     if (consolidatedData.moneda_carga) summary += `<p><strong>Moneda:</strong> ${consolidatedData.moneda_carga}</p>`;
     if (consolidatedData.tarifa_mas_baja_usd) summary += `<p><strong>Tarifa más baja USD:</strong> ${consolidatedData.tarifa_mas_baja_usd}</p>`;
     if (consolidatedData.cierres_parciales) summary += `<p><strong>Cierres parciales:</strong> ${consolidatedData.cierres_parciales}</p>`;
@@ -176,52 +195,52 @@ function generateAuditSummary(data) {
   
   // Canales
   if (consolidatedData.canales_activos || consolidatedData.canales_inactivos) {
-    summary += `<h4 style="color: #FF9800; margin: 8px 0;">🌐 Canales</h4>`;
+    summary += `<h4 style="color: #FF9800; margin: 12px 0;">🌐 Canales</h4>`;
     if (consolidatedData.canales_activos) summary += `<p><strong>Activos:</strong> ${consolidatedData.canales_activos}</p>`;
     if (consolidatedData.canales_inactivos) summary += `<p><strong>Inactivos:</strong> ${consolidatedData.canales_inactivos}</p>`;
   }
   
   // Usuarios
   if (consolidatedData.usuarios_activos || consolidatedData.usuarios_inactivos) {
-    summary += `<h4 style="color: #9C27B0; margin: 8px 0;">👥 Usuarios</h4>`;
+    summary += `<h4 style="color: #9C27B0; margin: 12px 0;">👥 Usuarios</h4>`;
     if (consolidatedData.usuarios_activos) summary += `<p><strong>Activos:</strong> ${consolidatedData.usuarios_activos}</p>`;
     if (consolidatedData.usuarios_inactivos) summary += `<p><strong>Inactivos:</strong> ${consolidatedData.usuarios_inactivos}</p>`;
   }
   
   // Pasarelas de Pago
   if (consolidatedData.pasarelas_pago_activas || consolidatedData.pasarelas_pago_inactivas) {
-    summary += `<h4 style="color: #E91E63; margin: 8px 0;">💳 Pasarelas de Pago</h4>`;
+    summary += `<h4 style="color: #E91E63; margin: 12px 0;">💳 Pasarelas de Pago</h4>`;
     if (consolidatedData.pasarelas_pago_activas) summary += `<p><strong>Activas:</strong> ${consolidatedData.pasarelas_pago_activas}</p>`;
     if (consolidatedData.pasarelas_pago_inactivas) summary += `<p><strong>Inactivas:</strong> ${consolidatedData.pasarelas_pago_inactivas}</p>`;
   }
   
   // Integración PMS
   if (consolidatedData.integraciones_pms) {
-    summary += `<h4 style="color: #607D8B; margin: 8px 0;">🔗 Integración PMS</h4>`;
+    summary += `<h4 style="color: #607D8B; margin: 12px 0;">🔗 Integración PMS</h4>`;
     summary += `<p><strong>Integraciones:</strong> ${consolidatedData.integraciones_pms}</p>`;
   }
   
   // Revenue Management
   if (consolidatedData.reglas_revenue) {
-    summary += `<h4 style="color: #795548; margin: 8px 0;">💰 Revenue Management</h4>`;
+    summary += `<h4 style="color: #795548; margin: 12px 0;">💰 Revenue Management</h4>`;
     summary += `<p><strong>Reglas:</strong> ${consolidatedData.reglas_revenue}</p>`;
   }
   
   // Reglas de Negocio
   if (consolidatedData.reglas_negocio) {
-    summary += `<h4 style="color: #3F51B5; margin: 8px 0;">⚙️ Reglas de Negocio</h4>`;
+    summary += `<h4 style="color: #3F51B5; margin: 12px 0;">⚙️ Reglas de Negocio</h4>`;
     summary += `<p><strong>Reglas:</strong> ${consolidatedData.reglas_negocio}</p>`;
   }
   
   // Comparador de Precios
   if (consolidatedData.comparador_precios) {
-    summary += `<h4 style="color: #FF5722; margin: 8px 0;">📈 Comparador de Precios</h4>`;
+    summary += `<h4 style="color: #FF5722; margin: 12px 0;">📈 Comparador de Precios</h4>`;
     summary += `<p><strong>Estado:</strong> ${consolidatedData.comparador_precios}</p>`;
   }
   
   // Metabuscadores
   if (consolidatedData.metabuscadores) {
-    summary += `<h4 style="color: #00BCD4; margin: 8px 0;">🔍 Metabuscadores</h4>`;
+    summary += `<h4 style="color: #00BCD4; margin: 12px 0;">🔍 Metabuscadores</h4>`;
     summary += `<p><strong>Estado:</strong> ${consolidatedData.metabuscadores}</p>`;
   }
   
@@ -285,17 +304,18 @@ async function runCompleteAudit() {
   showStatus('Iniciando auditoría automatizada...');
   
   try {
-    // Obtener pestaña activa
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Obtener pestaña activa de RoomCloud
+    const tabs = await chrome.tabs.query({ url: 'https://secure.roomcloud.net/*' });
     
-    // Verificar que estamos en RoomCloud
-    if (!tab.url.includes('secure.roomcloud.net')) {
-      showStatus('Error: Debes estar en RoomCloud para ejecutar la auditoría', true);
+    if (tabs.length === 0) {
+      showStatus('Error: Debes tener una pestaña de RoomCloud abierta', true);
       currentAuditState.isRunning = false;
       updateUI();
       saveState();
       return;
     }
+    
+    const tab = tabs[0];
     
     // Extraer datos de cada página
     for (let i = 0; i < auditPages.length; i++) {
@@ -352,10 +372,7 @@ async function runCompleteAudit() {
       
       downloadLink.href = url;
       downloadLink.download = `roomcloud_audit_${new Date().toISOString().split('T')[0]}.csv`;
-      downloadLink.style.backgroundColor = '#4CAF50';
-      downloadLink.style.color = 'white';
-      downloadLink.style.cursor = 'pointer';
-      downloadLink.style.pointerEvents = 'auto';
+      downloadLink.classList.add('active');
     }
     
     // Mostrar notificación
@@ -381,7 +398,7 @@ function clearData() {
   currentAuditState = {
     isRunning: false,
     currentStep: 0,
-    totalSteps: 10,
+    totalSteps: 9,
     progress: 0,
     startTime: null,
     lastUpdate: null
@@ -392,9 +409,17 @@ function clearData() {
   showStatus('Datos limpiados');
 }
 
+// Función para sincronizar estado en tiempo real
+function startStateSync() {
+  // Sincronizar cada 2 segundos
+  setInterval(async () => {
+    await loadSavedState();
+  }, 2000);
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('RoomCloud Auditor: Popup cargado');
+  console.log('RoomCloud Auditor: Interfaz completa cargada');
   
   // Cargar estado guardado
   await loadSavedState();
@@ -403,7 +428,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   const autoAuditButton = document.getElementById('autoAuditButton');
   const downloadLink = document.getElementById('downloadCSV');
   const clearButton = document.getElementById('clearData');
-  const openInTabButton = document.getElementById('openInTabButton');
   
   if (autoAuditButton) {
     autoAuditButton.addEventListener('click', runCompleteAudit);
@@ -413,10 +437,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     clearButton.addEventListener('click', clearData);
   }
   
-  if (openInTabButton) {
-    openInTabButton.addEventListener('click', openInNewTab);
+  // Configurar descarga CSV
+  if (downloadLink) {
+    downloadLink.addEventListener('click', function(e) {
+      if (!downloadLink.classList.contains('active')) {
+        e.preventDefault();
+        showStatus('No hay datos para descargar', true);
+      }
+    });
   }
   
   // Actualizar UI inicial
   updateUI();
+  
+  // Iniciar sincronización de estado
+  startStateSync();
+  
+  showStatus('Interfaz lista. Puedes iniciar la auditoría o ver el progreso actual.');
 });
