@@ -1,5 +1,12 @@
 // Content script para extraer datos de RoomCloud
-console.log('RoomCloud Auditor: Content script cargado');
+console.log('RoomCloud Auditor: Content script cargado en:', window.location.href);
+
+// Verificar que estamos en RoomCloud
+if (window.location.href.includes('secure.roomcloud.net')) {
+  console.log('RoomCloud Auditor: Página de RoomCloud detectada');
+} else {
+  console.log('RoomCloud Auditor: No es una página de RoomCloud');
+}
 
 let currentPage = '';
 
@@ -59,11 +66,18 @@ function extractHotelInfo() {
   try {
     // Buscar nombre del hotel en diferentes ubicaciones
     let hotelName = '';
+    let hotelId = '';
     
     // Buscar en el campo específico de RoomCloud (F_description)
     const descriptionInput = document.querySelector('input[name="F_description"]');
     if (descriptionInput && descriptionInput.value) {
       hotelName = descriptionInput.value.trim();
+    }
+    
+    // Buscar ID del hotel en diferentes ubicaciones
+    const idInput = document.querySelector('input[name="F_id"]');
+    if (idInput && idInput.value) {
+      hotelId = idInput.value.trim();
     }
     
     // Buscar en el título de la página como fallback
@@ -103,9 +117,6 @@ function extractHotelInfo() {
     }
     
     data.nombre_hotel = hotelName || 'N/A';
-    
-    // Buscar ID del hotel
-    let hotelId = '';
     
     // Buscar en el campo específico de RoomCloud (hotels_id)
     const hotelsIdInput = document.querySelector('input[name="hotels_id"]');
@@ -346,8 +357,8 @@ function extractUsersList() {
           // Limpiar el email (remover asteriscos)
           const cleanEmail = emailText.replace(/\*+/g, '');
           
-          // Filtrar correos que terminen con @pxsol.com o @roomcloud.net
-          if (!cleanEmail.endsWith('@pxsol.com') && !cleanEmail.endsWith('@roomcloud.net')) {
+          // Filtrar correos que terminen con @pxsol.com, @roomcloud.net o @cmreservas.com
+          if (!cleanEmail.endsWith('@pxsol.com') && !cleanEmail.endsWith('@roomcloud.net') && !cleanEmail.endsWith('@cmreservas.com')) {
             userEmails.push(cleanEmail);
             console.log('RoomCloud Auditor: Usuario incluido:', cleanEmail);
           } else {
@@ -969,6 +980,12 @@ async function extractDataFromCurrentPage() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('RoomCloud Auditor: Mensaje recibido:', request);
   
+  if (request.action === 'ping') {
+    console.log('RoomCloud Auditor: Ping recibido, respondiendo...');
+    sendResponse({ success: true, message: 'Content script activo' });
+    return true;
+  }
+  
   if (request.action === 'extractData') {
     (async () => {
       try {
@@ -983,8 +1000,269 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
     return true; // Mantener el canal de comunicación abierto
   }
+  
+  if (request.action === 'getCurrentHotel') {
+    (async () => {
+      try {
+        console.log('RoomCloud Auditor: Detectando hotel actual...');
+        const hotel = getCurrentHotel();
+        console.log('RoomCloud Auditor: Hotel actual:', hotel);
+        sendResponse({ success: true, hotel: hotel });
+      } catch (error) {
+        console.error('RoomCloud Auditor: Error detectando hotel:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Mantener el canal de comunicación abierto
+  }
+  
+  if (request.action === 'openHotelSearch') {
+    (async () => {
+      try {
+        console.log('RoomCloud Auditor: Abriendo búsqueda de hoteles...');
+        const result = await openHotelSearch();
+        sendResponse({ success: true, result: result });
+      } catch (error) {
+        console.error('RoomCloud Auditor: Error abriendo búsqueda:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Mantener el canal de comunicación abierto
+  }
+  
+  if (request.action === 'searchHotel') {
+    (async () => {
+      try {
+        console.log('RoomCloud Auditor: Búsqueda de hotel solicitada:', request.hotelId);
+        const result = await searchHotelInCurrentPage(request.hotelId);
+        sendResponse({ success: true, result: result });
+      } catch (error) {
+        console.error('RoomCloud Auditor: Error en búsqueda de hotel:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Mantener el canal de comunicación abierto
+  }
+  
   return true; // Mantener el canal de comunicación abierto
 });
+
+// Función para detectar el hotel actual
+function getCurrentHotel() {
+  try {
+    const hotelInfo = extractHotelInfo();
+    return {
+      name: hotelInfo.nombre_hotel,
+      id: hotelInfo.id_hotel
+    };
+  } catch (error) {
+    console.error('Error detectando hotel actual:', error);
+    return { name: 'N/A', id: 'N/A' };
+  }
+}
+
+// Función para abrir la búsqueda de hoteles
+async function openHotelSearch() {
+  try {
+    console.log('RoomCloud Auditor: Abriendo búsqueda de hoteles...');
+    
+    // Buscar el dropdown del hotel actual (basado en el HTML proporcionado)
+    const hotelDropdown = document.querySelector('.hotels-menu .dropdown-toggle');
+    if (!hotelDropdown) {
+      throw new Error('No se encontró el dropdown del hotel actual');
+    }
+    
+    console.log('RoomCloud Auditor: Dropdown del hotel encontrado:', hotelDropdown);
+    
+    // Hacer clic en el dropdown para abrirlo
+    hotelDropdown.click();
+    
+    // Esperar a que se abra el dropdown
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Buscar el botón "ADD HOTEL" específicamente (basado en el HTML)
+    const addHotelButton = document.querySelector('.hotels-menu .footer a[onclick*="loadHotel"]');
+    if (!addHotelButton) {
+      throw new Error('No se encontró el botón "ADD HOTEL"');
+    }
+    
+    console.log('RoomCloud Auditor: Botón ADD HOTEL encontrado:', addHotelButton);
+    
+    // Método alternativo: simular la apertura de ventana directamente
+    console.log('RoomCloud Auditor: Usando método alternativo para abrir búsqueda...');
+    
+    try {
+      // Crear la URL de búsqueda de hoteles basada en el HTML proporcionado
+      const searchUrl = 'https://secure.roomcloud.net/be/owners_area/HotelsList.jsp?caller=xx&formName=hotels&field=add_hotels';
+      
+      // Abrir la ventana directamente
+      const newWindow = window.open(searchUrl, 'LoadHotel', 'width=800,height=800,screenX=5,screeny=5,directories=no,location=no,menubar=no,scrollbars=yes,status=no,toolbar=no,resizable=no');
+      
+      if (newWindow) {
+        console.log('RoomCloud Auditor: Ventana de búsqueda abierta directamente');
+        
+        // Notificar al background script sobre la nueva ventana
+        chrome.runtime.sendMessage({
+          action: 'hotelSearchWindowOpened',
+          windowId: newWindow.name,
+          url: searchUrl
+        });
+        
+      } else {
+        throw new Error('No se pudo abrir la ventana de búsqueda');
+      }
+      
+    } catch (error) {
+      console.error('RoomCloud Auditor: Error abriendo ventana de búsqueda:', error);
+      throw error;
+    }
+    
+    console.log('RoomCloud Auditor: Búsqueda de hoteles abierta en nueva ventana');
+    return true;
+    
+  } catch (error) {
+    console.error('RoomCloud Auditor: Error abriendo búsqueda de hoteles:', error);
+    throw error;
+  }
+}
+
+// Función para buscar hotel en la página actual
+async function searchHotelInCurrentPage(hotelId) {
+  console.log('RoomCloud Auditor: Buscando hotel ID:', hotelId, 'en página actual');
+  
+  try {
+    // Esperar a que la página cargue completamente
+    if (document.readyState !== 'complete') {
+      console.log('RoomCloud Auditor: Esperando a que la página cargue...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    // Buscar el campo de búsqueda específico de RoomCloud
+    let searchInput = document.getElementById('hotel_filter');
+    
+    if (searchInput) {
+      console.log('RoomCloud Auditor: Campo hotel_filter encontrado:', searchInput);
+      
+      // Simular escritura humana
+      await simulateHumanTyping(searchInput, hotelId);
+      
+      // Esperar a que se procese la búsqueda
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      console.log('RoomCloud Auditor: Buscando resultados filtrados...');
+      
+      // Buscar enlaces de hotel en el menú filtrado
+      const menuItems = document.querySelectorAll('#hotel_filter_data a, .menu a, ul.menu a');
+      console.log('RoomCloud Auditor: Elementos de menú encontrados:', menuItems.length);
+      
+      let hotelFound = false;
+      for (let item of menuItems) {
+        const itemText = item.textContent.trim();
+        console.log('RoomCloud Auditor: Verificando elemento:', itemText);
+        
+        if (itemText.includes(hotelId)) {
+          console.log('RoomCloud Auditor: Hotel encontrado, haciendo clic:', itemText);
+          
+          // Simular clic real
+          item.dispatchEvent(new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+          }));
+          
+          hotelFound = true;
+          break;
+        }
+      }
+      
+      if (!hotelFound) {
+        console.log('RoomCloud Auditor: Hotel no encontrado en resultados filtrados');
+        
+        // Intentar búsqueda manual en todos los elementos
+        const allLinks = document.querySelectorAll('a');
+        console.log('RoomCloud Auditor: Buscando en todos los enlaces:', allLinks.length);
+        
+        for (let link of allLinks) {
+          const linkText = link.textContent.trim();
+          if (linkText.includes(hotelId)) {
+            console.log('RoomCloud Auditor: Hotel encontrado en búsqueda manual:', linkText);
+            link.click();
+            break;
+          }
+        }
+      }
+      
+      return { success: true, message: 'Búsqueda completada' };
+      
+    } else {
+      console.log('RoomCloud Auditor: hotel_filter no encontrado, buscando alternativas...');
+      
+      // Método alternativo: buscar cualquier input de texto
+      const textInputs = document.querySelectorAll('input[type="text"]');
+      console.log('RoomCloud Auditor: Inputs de texto encontrados:', textInputs.length);
+      
+      if (textInputs.length > 0) {
+        const firstInput = textInputs[0];
+        console.log('RoomCloud Auditor: Usando primer input de texto:', firstInput);
+        
+        await simulateHumanTyping(firstInput, hotelId);
+        
+        // Buscar resultados después de un tiempo
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const allLinks = document.querySelectorAll('a');
+        for (let link of allLinks) {
+          const linkText = link.textContent.trim();
+          if (linkText.includes(hotelId)) {
+            console.log('RoomCloud Auditor: Hotel encontrado:', linkText);
+            link.click();
+            break;
+          }
+        }
+      } else {
+        console.log('RoomCloud Auditor: No se encontraron inputs de texto');
+      }
+      
+      return { success: false, message: 'Campo de búsqueda no encontrado' };
+    }
+    
+  } catch (error) {
+    console.error('RoomCloud Auditor: Error buscando hotel:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Función para simular escritura humana
+async function simulateHumanTyping(inputElement, text) {
+  console.log('RoomCloud Auditor: Simulando escritura humana:', text);
+  
+  // Limpiar el campo primero
+  inputElement.value = '';
+  inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+  
+  // Esperar un momento
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Escribir carácter por carácter
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    inputElement.value += char;
+    
+    // Disparar eventos para cada carácter
+    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    inputElement.dispatchEvent(new Event('keydown', { bubbles: true }));
+    inputElement.dispatchEvent(new Event('keyup', { bubbles: true }));
+    
+    // Pequeña pausa entre caracteres
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  
+  // Evento final
+  inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+  inputElement.dispatchEvent(new Event('blur', { bubbles: true }));
+  
+  console.log('RoomCloud Auditor: Escritura simulada completada');
+}
 
 // Función para mostrar notificación en la página
 function showNotification(message, type = 'info') {

@@ -130,12 +130,14 @@ function updateUI() {
     downloadLink.style.cursor = 'pointer';
     downloadLink.style.pointerEvents = 'auto';
     downloadLink.textContent = `📥 Descargar CSV (${extractedData.length} datos)`;
+    downloadLink.classList.add('active');
   } else if (downloadLink) {
     downloadLink.style.backgroundColor = '#ccc';
     downloadLink.style.color = '#666';
     downloadLink.style.cursor = 'not-allowed';
     downloadLink.style.pointerEvents = 'none';
     downloadLink.textContent = '📥 Descargar CSV (sin datos)';
+    downloadLink.classList.remove('active');
   }
   
   // Mostrar resumen si hay datos
@@ -162,9 +164,9 @@ function showAuditInProgressMessage() {
   }
 }
 
-// Función para generar resumen de auditoría
+// Función para generar resumen de auditoría (versión resumida)
 function generateAuditSummary(data) {
-  if (data.length === 0) return '<p>No hay datos extraídos</p>';
+  if (data.length === 0) return '<p style="color: #666; text-align: center; padding: 20px;">No hay datos extraídos</p>';
   
   // Consolidar datos
   const consolidatedData = {};
@@ -180,71 +182,52 @@ function generateAuditSummary(data) {
     });
   });
   
-  let summary = '<div style="max-height: 300px; overflow-y: auto; padding: 15px; background: #ffffff; border-radius: 8px; border: 2px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+  let summary = '<div style="max-height: 250px; overflow-y: auto; padding: 12px; background: #ffffff; border-radius: 8px; border: 2px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 13px;">';
   
-  // Hotel
+  // Hotel (nombre + habitaciones)
   if (consolidatedData.nombre_hotel) {
-    summary += `<h3 style="color: #1565C0; margin: 10px 0; font-size: 18px; border-bottom: 2px solid #1565C0; padding-bottom: 5px;">🏨 Hotel: ${consolidatedData.nombre_hotel}</h3>`;
+    const habitaciones = consolidatedData.habitaciones || 'N/A';
+    summary += `<div style="color: #1565C0; font-weight: 600; margin-bottom: 10px; font-size: 14px;">🏨 ${consolidatedData.nombre_hotel} (${habitaciones} hab.)</div>`;
   }
   
-  // Disponibilidad
-  if (consolidatedData.moneda_carga || consolidatedData.tarifa_mas_baja_usd || consolidatedData.cierres_parciales) {
-    summary += `<h4 style="color: #2E7D32; margin: 12px 0 8px 0; font-size: 16px; background: #E8F5E8; padding: 5px 10px; border-radius: 4px;">📊 Disponibilidad</h4>`;
-    if (consolidatedData.moneda_carga) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #2E7D32;">Moneda:</strong> <span style="color: #555555;">${consolidatedData.moneda_carga}</span></p>`;
-    if (consolidatedData.tarifa_mas_baja_usd) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #2E7D32;">Tarifa más baja USD:</strong> <span style="color: #555555;">${consolidatedData.tarifa_mas_baja_usd}</span></p>`;
-    if (consolidatedData.cierres_parciales) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #2E7D32;">Cierres parciales:</strong> <span style="color: #555555;">${consolidatedData.cierres_parciales}</span></p>`;
-  }
+  // Función helper para crear secciones compactas
+  const createCompactSection = (icon, title, data, color) => {
+    if (!data) return '';
+    return `<div style="margin: 6px 0; padding: 4px 8px; background: ${color}20; border-radius: 4px; border-left: 3px solid ${color};">
+      <span style="color: ${color}; font-weight: 600; font-size: 12px;">${icon} ${title}:</span>
+      <span style="color: #333; margin-left: 5px; font-size: 12px;">${data}</span>
+    </div>`;
+  };
   
-  // Canales
-  if (consolidatedData.canales_activos || consolidatedData.canales_inactivos) {
-    summary += `<h4 style="color: #E65100; margin: 12px 0 8px 0; font-size: 16px; background: #FFF3E0; padding: 5px 10px; border-radius: 4px;">🌐 Canales</h4>`;
-    if (consolidatedData.canales_activos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #E65100;">Activos:</strong> <span style="color: #555555;">${consolidatedData.canales_activos}</span></p>`;
-    if (consolidatedData.canales_inactivos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #E65100;">Inactivos:</strong> <span style="color: #555555;">${consolidatedData.canales_inactivos}</span></p>`;
-  }
+  // Secciones principales (solo las más importantes)
+  summary += createCompactSection('📊', 'Disponibilidad', 
+    `${consolidatedData.moneda_carga || 'N/A'} | USD ${consolidatedData.tarifa_mas_baja_usd || 'N/A'}`, '#2E7D32');
   
-  // Usuarios
-  if (consolidatedData.usuarios_activos || consolidatedData.usuarios_inactivos) {
-    summary += `<h4 style="color: #6A1B9A; margin: 12px 0 8px 0; font-size: 16px; background: #F3E5F5; padding: 5px 10px; border-radius: 4px;">👥 Usuarios</h4>`;
-    if (consolidatedData.usuarios_activos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #6A1B9A;">Activos:</strong> <span style="color: #555555;">${consolidatedData.usuarios_activos}</span></p>`;
-    if (consolidatedData.usuarios_inactivos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #6A1B9A;">Inactivos:</strong> <span style="color: #555555;">${consolidatedData.usuarios_inactivos}</span></p>`;
-  }
+  summary += createCompactSection('🌐', 'Canales', 
+    consolidatedData.canales_activos ? `${consolidatedData.canales_activos.split(';').length} activos` : 'N/A', '#E65100');
   
-  // Pasarelas de Pago
-  if (consolidatedData.pasarelas_pago_activas || consolidatedData.pasarelas_pago_inactivas) {
-    summary += `<h4 style="color: #C2185B; margin: 12px 0 8px 0; font-size: 16px; background: #FCE4EC; padding: 5px 10px; border-radius: 4px;">💳 Pasarelas de Pago</h4>`;
-    if (consolidatedData.pasarelas_pago_activas) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #C2185B;">Activas:</strong> <span style="color: #555555;">${consolidatedData.pasarelas_pago_activas}</span></p>`;
-    if (consolidatedData.pasarelas_pago_inactivas) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #C2185B;">Inactivas:</strong> <span style="color: #555555;">${consolidatedData.pasarelas_pago_inactivas}</span></p>`;
-  }
+  summary += createCompactSection('👥', 'Usuarios', 
+    consolidatedData.cantidad_usuarios ? `${consolidatedData.cantidad_usuarios} usuarios` : 'N/A', '#6A1B9A');
   
-  // Integración PMS
-  if (consolidatedData.integraciones_pms) {
-    summary += `<h4 style="color: #455A64; margin: 12px 0 8px 0; font-size: 16px; background: #ECEFF1; padding: 5px 10px; border-radius: 4px;">🔗 Integración PMS</h4>`;
-    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #455A64;">Integraciones:</strong> <span style="color: #555555;">${consolidatedData.integraciones_pms}</span></p>`;
-  }
+  summary += createCompactSection('💳', 'Pasarelas', 
+    consolidatedData.cantidad_pasarelas_activas ? `${consolidatedData.cantidad_pasarelas_activas} activas` : 'N/A', '#C2185B');
   
-  // Revenue Management
-  if (consolidatedData.reglas_revenue) {
-    summary += `<h4 style="color: #5D4037; margin: 12px 0 8px 0; font-size: 16px; background: #EFEBE9; padding: 5px 10px; border-radius: 4px;">💰 Revenue Management</h4>`;
-    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #5D4037;">Reglas:</strong> <span style="color: #555555;">${consolidatedData.reglas_revenue}</span></p>`;
-  }
+  summary += createCompactSection('🔗', 'PMS', 
+    consolidatedData.integracion_pms === 'Sí' ? (consolidatedData.pms_provider || 'Sí') : 'N/A', '#455A64');
   
-  // Reglas de Negocio
-  if (consolidatedData.reglas_negocio) {
-    summary += `<h4 style="color: #303F9F; margin: 12px 0 8px 0; font-size: 16px; background: #E8EAF6; padding: 5px 10px; border-radius: 4px;">⚙️ Reglas de Negocio</h4>`;
-    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #303F9F;">Reglas:</strong> <span style="color: #555555;">${consolidatedData.reglas_negocio}</span></p>`;
-  }
+  summary += createCompactSection('💰', 'Revenue', 
+    consolidatedData.cantidad_reglas_revenue ? `${consolidatedData.cantidad_reglas_revenue} reglas` : 'N/A', '#5D4037');
   
-  // Comparador de Precios
-  if (consolidatedData.comparador_precios) {
-    summary += `<h4 style="color: #D84315; margin: 12px 0 8px 0; font-size: 16px; background: #FBE9E7; padding: 5px 10px; border-radius: 4px;">📈 Comparador de Precios</h4>`;
-    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #D84315;">Estado:</strong> <span style="color: #555555;">${consolidatedData.comparador_precios}</span></p>`;
-  }
+  summary += createCompactSection('📈', 'Comparador', 
+    consolidatedData.comparador_precios || 'N/A', '#D84315');
   
-  // Metabuscadores
-  if (consolidatedData.metabuscadores) {
-    summary += `<h4 style="color: #00695C; margin: 12px 0 8px 0; font-size: 16px; background: #E0F2F1; padding: 5px 10px; border-radius: 4px;">🔍 Metabuscadores</h4>`;
-    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #00695C;">Estado:</strong> <span style="color: #555555;">${consolidatedData.metabuscadores}</span></p>`;
-  }
+  summary += createCompactSection('🔍', 'Metabuscadores', 
+    consolidatedData.metabuscadores || 'N/A', '#00695C');
+  
+  // Contador de datos extraídos
+  summary += `<div style="margin-top: 10px; padding: 6px; background: #f5f5f5; border-radius: 4px; text-align: center; font-size: 11px; color: #666;">
+    📋 ${data.length} módulos auditados
+  </div>`;
   
   summary += '</div>';
   return summary;
@@ -375,6 +358,9 @@ async function runCompleteAudit() {
           fecha_extraccion: new Date().toISOString()
         });
         showStatus(`✅ ${page.name}: Datos extraídos correctamente`);
+        
+        // Actualizar UI inmediatamente para mostrar progreso
+        updateUI();
       } else {
         showStatus(`❌ ${page.name}: Error al extraer datos`, true);
       }
@@ -443,6 +429,253 @@ function clearData() {
   showStatus('Datos limpiados');
 }
 
+// Función para verificar conexión con content script
+async function checkContentScriptConnection() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab.url.includes('secure.roomcloud.net')) {
+      showStatus('Error: Debes estar en RoomCloud para usar esta funcionalidad', true);
+      return false;
+    }
+    
+    // Intentar enviar un mensaje de prueba
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+    
+    if (response && response.success) {
+      console.log('RoomCloud Auditor: Conexión con content script establecida');
+      return true;
+    } else {
+      console.error('RoomCloud Auditor: No se recibió respuesta del content script');
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('RoomCloud Auditor: Error de conexión con content script:', error);
+    return false;
+  }
+}
+
+// Función para detectar hotel actual
+async function detectCurrentHotel() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab.url.includes('secure.roomcloud.net')) {
+      showStatus('Error: Debes estar en RoomCloud para detectar el hotel', true);
+      return;
+    }
+    
+    // Verificar conexión primero
+    const isConnected = await checkContentScriptConnection();
+    if (!isConnected) {
+      showStatus('Error: No se puede conectar con la página. Recarga la página e intenta de nuevo.', true);
+      return;
+    }
+    
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'getCurrentHotel' });
+    
+    if (response && response.success) {
+      const currentHotelDiv = document.getElementById('currentHotel');
+      if (currentHotelDiv) {
+        currentHotelDiv.textContent = `${response.hotel.name} (ID: ${response.hotel.id})`;
+        currentHotelDiv.style.color = '#4CAF50';
+      }
+      console.log('RoomCloud Auditor: Hotel actual detectado:', response.hotel);
+    } else {
+      const currentHotelDiv = document.getElementById('currentHotel');
+      if (currentHotelDiv) {
+        currentHotelDiv.textContent = 'Error detectando hotel';
+        currentHotelDiv.style.color = '#f44336';
+      }
+      console.error('RoomCloud Auditor: Error detectando hotel:', response?.error);
+    }
+  } catch (error) {
+    console.error('RoomCloud Auditor: Error en detección de hotel:', error);
+    const currentHotelDiv = document.getElementById('currentHotel');
+    if (currentHotelDiv) {
+      currentHotelDiv.textContent = 'Error: ' + error.message;
+      currentHotelDiv.style.color = '#f44336';
+    }
+  }
+}
+
+// Función para cambiar hotel
+async function changeHotel() {
+  const newHotelIdInput = document.getElementById('newHotelId');
+  const changeHotelButton = document.getElementById('changeHotelButton');
+  
+  if (!newHotelIdInput || !changeHotelButton) {
+    showStatus('Error: Elementos de interfaz no encontrados', true);
+    return;
+  }
+  
+  const newHotelId = newHotelIdInput.value.trim();
+  if (!newHotelId) {
+    showStatus('Error: Debes ingresar un ID de hotel', true);
+    return;
+  }
+  
+  // Deshabilitar botón durante el proceso
+  changeHotelButton.disabled = true;
+  changeHotelButton.textContent = '🔄 Cambiando...';
+  
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab.url.includes('secure.roomcloud.net')) {
+      showStatus('Error: Debes estar en RoomCloud para cambiar de hotel', true);
+      return;
+    }
+    
+    // Verificar conexión primero
+    const isConnected = await checkContentScriptConnection();
+    if (!isConnected) {
+      showStatus('Error: No se puede conectar con la página. Recarga la página e intenta de nuevo.', true);
+      return;
+    }
+    
+    showStatus('🔄 Abriendo búsqueda de hoteles...');
+    
+    // Abrir búsqueda de hoteles
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'openHotelSearch' });
+    
+    if (response && response.success) {
+      showStatus('✅ Nueva ventana de búsqueda abierta. Iniciando búsqueda automática...');
+      
+      // Guardar hotel ID temporalmente y activar monitoreo automático
+      try {
+        await chrome.storage.local.set({ tempHotelId: newHotelId });
+        await chrome.runtime.sendMessage({ 
+          action: 'monitorHotelSearch', 
+          hotelId: newHotelId 
+        });
+      } catch (error) {
+        console.error('RoomCloud Auditor: Error activando monitoreo:', error);
+      }
+      
+      // Mostrar instrucciones actualizadas
+      const statusDiv = document.getElementById('status');
+      if (statusDiv) {
+        statusDiv.innerHTML = `
+          <div style="background: #E8F5E8; border: 2px solid #4CAF50; border-radius: 8px; padding: 15px; margin: 10px 0;">
+            <h4 style="color: #2E7D32; margin: 0 0 10px 0;">🤖 Búsqueda Automática Activada</h4>
+            <p style="color: #333333; margin: 5px 0;">1. ✅ Se abrió una nueva ventana de búsqueda</p>
+            <p style="color: #333333; margin: 5px 0;">2. 🔍 Búsqueda automática iniciada para ID: <strong style="color: #D32F2F; font-size: 16px;">${newHotelId}</strong></p>
+            <p style="color: #333333; margin: 5px 0;">3. ⏳ Esperando resultados de búsqueda...</p>
+            <p style="color: #333333; margin: 5px 0;">4. 🎯 Si se encuentra el hotel, se seleccionará automáticamente</p>
+            <p style="color: #333333; margin: 5px 0;">5. ✅ La ventana se cerrará automáticamente</p>
+            <p style="color: #333333; margin: 5px 0;">6. 🔄 Regresa aquí y haz clic en "Verificar Cambio"</p>
+            <div style="background: #FFF3E0; border-left: 4px solid #FF9800; padding: 10px; margin-top: 10px;">
+              <p style="color: #E65100; margin: 0; font-size: 12px;"><strong>💡 Tip:</strong> Si la búsqueda automática falla, puedes buscar manualmente</p>
+            </div>
+          </div>
+        `;
+        statusDiv.style.display = 'block';
+      }
+      
+      // Mostrar botón de verificación
+      const verifyButton = document.getElementById('verifyHotelChangeButton');
+      if (verifyButton) {
+        verifyButton.style.display = 'block';
+      }
+      
+    } else {
+      showStatus('❌ Error abriendo búsqueda: ' + (response?.error || 'Error desconocido'), true);
+    }
+    
+  } catch (error) {
+    console.error('RoomCloud Auditor: Error cambiando hotel:', error);
+    showStatus('❌ Error: ' + error.message, true);
+  } finally {
+    // Restaurar botón
+    changeHotelButton.disabled = false;
+    changeHotelButton.textContent = '🔄 Cambiar Hotel';
+  }
+}
+
+// Función para verificar cambio de hotel
+async function verifyHotelChange() {
+  const verifyButton = document.getElementById('verifyHotelChangeButton');
+  
+  if (verifyButton) {
+    verifyButton.disabled = true;
+    verifyButton.textContent = '🔄 Verificando...';
+  }
+  
+  try {
+    // Detectar el hotel actual para verificar si cambió
+    await detectCurrentHotel();
+    
+    // Obtener el hotel actual después del cambio
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const response = await chrome.tabs.sendMessage(tab.id, { action: 'getCurrentHotel' });
+    
+    if (response && response.success) {
+      const newHotelIdInput = document.getElementById('newHotelId');
+      const expectedId = newHotelIdInput ? newHotelIdInput.value.trim() : '';
+      
+      if (response.hotel.id === expectedId) {
+        showStatus('✅ ¡Cambio de hotel exitoso! Hotel actual: ' + response.hotel.name, false);
+        
+        // Ocultar botón de verificación
+        if (verifyButton) {
+          verifyButton.style.display = 'none';
+        }
+        
+        // Limpiar campo de entrada
+        if (newHotelIdInput) {
+          newHotelIdInput.value = '';
+        }
+        
+        // Mostrar mensaje de éxito
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+          statusDiv.innerHTML = `
+            <div style="background: #E8F5E8; border: 2px solid #4CAF50; border-radius: 8px; padding: 15px; margin: 10px 0;">
+              <h4 style="color: #2E7D32; margin: 0 0 10px 0;">✅ Cambio Exitoso</h4>
+              <p style="color: #333333; margin: 5px 0;"><strong>Hotel Actual:</strong> ${response.hotel.name}</p>
+              <p style="color: #333333; margin: 5px 0;"><strong>ID:</strong> ${response.hotel.id}</p>
+              <p style="color: #555555; margin: 5px 0; font-size: 12px;">Ya puedes iniciar una nueva auditoría para este hotel</p>
+            </div>
+          `;
+          statusDiv.style.display = 'block';
+        }
+        
+      } else {
+        showStatus('❌ El hotel no cambió. ID esperado: ' + expectedId + ', ID actual: ' + response.hotel.id, true);
+        
+        // Mostrar mensaje de error
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+          statusDiv.innerHTML = `
+            <div style="background: #FFEBEE; border: 2px solid #F44336; border-radius: 8px; padding: 15px; margin: 10px 0;">
+              <h4 style="color: #D32F2F; margin: 0 0 10px 0;">❌ Cambio No Completado</h4>
+              <p style="color: #333333; margin: 5px 0;"><strong>Hotel Actual:</strong> ${response.hotel.name}</p>
+              <p style="color: #333333; margin: 5px 0;"><strong>ID Actual:</strong> ${response.hotel.id}</p>
+              <p style="color: #333333; margin: 5px 0;"><strong>ID Esperado:</strong> ${expectedId}</p>
+              <p style="color: #555555; margin: 5px 0; font-size: 12px;">Verifica que seleccionaste el hotel correcto en la ventana de búsqueda</p>
+            </div>
+          `;
+          statusDiv.style.display = 'block';
+        }
+      }
+    } else {
+      showStatus('❌ Error verificando hotel: ' + (response?.error || 'Error desconocido'), true);
+    }
+    
+  } catch (error) {
+    console.error('RoomCloud Auditor: Error verificando cambio de hotel:', error);
+    showStatus('❌ Error: ' + error.message, true);
+  } finally {
+    // Restaurar botón
+    if (verifyButton) {
+      verifyButton.disabled = false;
+      verifyButton.textContent = '✅ Verificar Cambio';
+    }
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('RoomCloud Auditor: Popup cargado');
@@ -454,6 +687,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const autoAuditButton = document.getElementById('autoAuditButton');
   const downloadLink = document.getElementById('downloadCSV');
   const clearButton = document.getElementById('clearData');
+  const changeHotelButton = document.getElementById('changeHotelButton');
   
   if (autoAuditButton) {
     autoAuditButton.addEventListener('click', runCompleteAudit);
@@ -462,6 +696,70 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (clearButton) {
     clearButton.addEventListener('click', clearData);
   }
+  
+  if (changeHotelButton) {
+    changeHotelButton.addEventListener('click', changeHotel);
+  }
+  
+  const verifyHotelChangeButton = document.getElementById('verifyHotelChangeButton');
+  if (verifyHotelChangeButton) {
+    verifyHotelChangeButton.addEventListener('click', verifyHotelChange);
+  }
+  
+  // Configurar descarga CSV
+  if (downloadLink) {
+    downloadLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      if (!extractedData || extractedData.length === 0) {
+        showStatus('No hay datos para descargar', true);
+        return;
+      }
+      
+      try {
+        console.log('RoomCloud Auditor: Iniciando descarga CSV...');
+        
+        // Generar CSV
+        const csvContent = convertToCSV(extractedData);
+        
+        if (!csvContent) {
+          showStatus('Error: No se pudo generar el CSV', true);
+          return;
+        }
+        
+        // Crear nombre de archivo con fecha
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const filename = `roomcloud_audit_${dateStr}.csv`;
+        
+        // Crear blob y descargar
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        // Crear enlace temporal y hacer clic
+        const tempLink = document.createElement('a');
+        tempLink.href = url;
+        tempLink.download = filename;
+        tempLink.style.display = 'none';
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+        
+        // Limpiar URL
+        URL.revokeObjectURL(url);
+        
+        showStatus('✅ CSV descargado exitosamente: ' + filename);
+        console.log('RoomCloud Auditor: CSV descargado:', filename);
+        
+      } catch (error) {
+        console.error('RoomCloud Auditor: Error descargando CSV:', error);
+        showStatus('❌ Error descargando CSV: ' + error.message, true);
+      }
+    });
+  }
+  
+  // Detectar hotel actual al cargar
+  await detectCurrentHotel();
   
   // Actualizar UI inicial
   updateUI();

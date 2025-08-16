@@ -1,5 +1,489 @@
 # Log de Desarrollo - RoomCloud Auditor
 
+## Versión 1.6 - Funcionalidad de Cambio Manual de Hotel
+
+### 🏨 **Nueva Funcionalidad Implementada**
+
+#### **Objetivo**
+- **Problema**: Necesidad de cambiar manualmente entre hoteles para auditorías
+- **Solución**: Interfaz para cambio manual de hotel con detección automática
+- **Propósito**: Base para futura automatización masiva de auditorías
+
+#### **Funcionalidades Implementadas**
+
+##### **1. Interfaz de Cambio Manual**
+```html
+<div class="hotel-change-section">
+  <h4>🏨 Cambio Manual de Hotel</h4>
+  <div>Hotel Actual: [Detectado automáticamente]</div>
+  <input type="text" id="newHotelId" placeholder="Ej: 12345">
+  <button id="changeHotelButton">🔄 Cambiar Hotel</button>
+</div>
+```
+
+##### **2. Detección Automática de Hotel Actual**
+```javascript
+// Función para detectar hotel actual
+async function detectCurrentHotel() {
+  const response = await chrome.tabs.sendMessage(tab.id, { 
+    action: 'getCurrentHotel' 
+  });
+  // Muestra: "Hotel ABC (ID: 12345)"
+}
+```
+
+##### **3. Apertura Automática de Búsqueda**
+```javascript
+// Función para abrir búsqueda de hoteles
+async function openHotelSearch() {
+  // Busca botón del hotel actual
+  // Hace clic para abrir dropdown
+  // Busca botón "Add Hotel"
+  // Hace clic para abrir nueva pestaña
+}
+```
+
+##### **4. Flujo de Trabajo Mejorado**
+1. **Detección**: Al cargar popup, detecta hotel actual automáticamente
+2. **Entrada**: Usuario ingresa ID del nuevo hotel
+3. **Apertura**: Extensión abre dropdown y hace clic en "ADD HOTEL"
+4. **Nueva Ventana**: Se abre ventana de búsqueda de hoteles
+5. **Búsqueda Manual**: Usuario busca hotel por ID en la nueva ventana
+6. **Selección**: Usuario hace clic en el nombre del hotel
+7. **Cierre Automático**: La ventana se cierra automáticamente
+8. **Verificación**: Usuario regresa y hace clic en "Verificar Cambio"
+9. **Confirmación**: Sistema verifica que el hotel cambió correctamente
+
+#### **Archivos Modificados**
+- **`popup.html`**: Agregada sección de cambio manual de hotel
+- **`popup.js`**: 
+  - `detectCurrentHotel()`: Detección automática
+  - `changeHotel()`: Manejo del proceso de cambio
+- **`content.js`**: 
+  - `getCurrentHotel()`: Extracción de información del hotel
+  - `openHotelSearch()`: Automatización de apertura de búsqueda
+  - Nuevos listeners para `getCurrentHotel` y `openHotelSearch`
+
+#### **Características Técnicas Mejoradas**
+- **Detección Robusta**: Busca hotel actual en múltiples ubicaciones
+- **Automatización del Dropdown**: Abre dropdown y hace clic en "ADD HOTEL" automáticamente
+- **Interacción Manual**: Usuario busca y selecciona hotel específico en nueva ventana
+- **Verificación Automática**: Confirma que el hotel cambió correctamente
+- **Feedback Visual Detallado**: Instrucciones paso a paso con iconos y colores
+- **Manejo de Errores**: Validación completa y mensajes informativos
+- **Botón de Verificación**: Permite confirmar el cambio después de la selección
+
+#### **Ventajas**
+- ✅ **Testing Controlado**: ID específico para probar
+- ✅ **Debugging Fácil**: Logs paso a paso
+- ✅ **Base Sólida**: Para futura automatización completa
+- ✅ **UX Intuitiva**: Instrucciones claras para el usuario
+
+---
+
+## Versión 1.7 - Corrección de Errores de Conexión
+
+### 🔧 **Problema Identificado**
+- **Error**: "Could not establish connection. Receiving end does not exist."
+- **Causa**: Content script no se inyecta correctamente en páginas de RoomCloud
+- **Impacto**: Funcionalidad de cambio de hotel no funciona
+
+### **Soluciones Implementadas**
+
+#### **1. Verificación de Conexión**
+```javascript
+// Función para verificar conexión con content script
+async function checkContentScriptConnection() {
+  const response = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+  return response && response.success;
+}
+```
+
+#### **2. Mensaje de Ping**
+```javascript
+// En content script
+if (request.action === 'ping') {
+  sendResponse({ success: true, message: 'Content script activo' });
+  return true;
+}
+```
+
+#### **3. Diagnóstico Mejorado**
+- Logs detallados en content script
+- Verificación de URL de RoomCloud
+- Mensajes de error más informativos
+
+#### **4. Script de Recarga**
+- Archivo `recargar_extension.js` para debugging
+- Verificación automática de funcionalidad
+
+### **Pasos para Solucionar**
+1. **Recargar Extensión**: En chrome://extensions/, hacer clic en "Recargar"
+2. **Recargar Página**: Recargar la página de RoomCloud
+3. **Verificar Consola**: Revisar logs en DevTools
+4. **Probar Conexión**: Usar función de verificación
+
+### **Archivos Modificados**
+- **`content.js`**: Agregado listener para 'ping' y logs de diagnóstico
+- **`popup.js`**: Agregada verificación de conexión antes de operaciones
+- **`recargar_extension.js`**: Script de debugging (nuevo)
+
+### **Resultado Esperado**
+- ✅ Conexión establecida con content script
+- ✅ Detección automática de hotel actual
+- ✅ Funcionalidad de cambio de hotel operativa
+
+---
+
+## Versión 1.8 - Búsqueda Automática de Hoteles
+
+### 🤖 **Nueva Funcionalidad Implementada**
+
+#### **Problema Identificado**
+- **CSP Error**: Content Security Policy bloqueaba ejecución de JavaScript inline
+- **Búsqueda Manual**: Usuario tenía que buscar manualmente el hotel en la nueva ventana
+- **Proceso Lento**: Cambio de hotel requería intervención manual completa
+
+#### **Solución Automatizada**
+
+##### **1. Manejo de CSP**
+```javascript
+// Método alternativo para evitar CSP
+try {
+  if (typeof window.loadHotel === 'function') {
+    window.loadHotel('hotels', 'add_hotels');
+  } else {
+    const clickEvent = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    });
+    addHotelButton.dispatchEvent(clickEvent);
+  }
+} catch (cspError) {
+  // Método alternativo con evento personalizado
+}
+```
+
+##### **2. Monitoreo Automático de Ventana**
+```javascript
+// En background script
+async function monitorHotelSearchWindow(hotelId) {
+  // Buscar nueva pestaña de búsqueda
+  const searchTab = tabs.find(tab => 
+    tab.url.includes('HotelsList.jsp') && 
+    tab.url.includes('caller=xx')
+  );
+  
+  // Inyectar script de búsqueda automática
+  await chrome.scripting.executeScript({
+    target: { tabId: searchTab.id },
+    function: searchHotelById,
+    args: [hotelId]
+  });
+}
+```
+
+##### **3. Búsqueda Automática**
+```javascript
+// Función que se ejecuta en la ventana de búsqueda
+function searchHotelById(hotelId) {
+  // Buscar campo de búsqueda
+  const searchInput = document.querySelector('input[name="search"]');
+  
+  // Escribir ID del hotel
+  searchInput.value = hotelId;
+  searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+  
+  // Buscar y hacer clic en el hotel
+  setTimeout(() => {
+    const hotelLinks = document.querySelectorAll('a[onclick*="submitHotel"]');
+    for (let link of hotelLinks) {
+      if (link.textContent.includes(hotelId)) {
+        link.click();
+        break;
+      }
+    }
+  }, 1000);
+}
+```
+
+#### **Flujo Automatizado**
+1. **Apertura**: Extensión abre dropdown y hace clic en "ADD HOTEL"
+2. **Monitoreo**: Background script detecta nueva ventana de búsqueda
+3. **Inyección**: Se inyecta script de búsqueda automática
+4. **Búsqueda**: Script busca hotel por ID automáticamente
+5. **Selección**: Si encuentra el hotel, hace clic automáticamente
+6. **Cierre**: Ventana se cierra automáticamente
+7. **Verificación**: Usuario verifica el cambio exitoso
+
+#### **Archivos Modificados**
+- **`content.js`**: Manejo mejorado de CSP y apertura de búsqueda
+- **`background.js`**: Monitoreo automático y búsqueda de hoteles
+- **`popup.js`**: Activación de búsqueda automática
+- **`manifest.json`**: Permisos `tabs` y `scripting` agregados
+
+#### **Ventajas**
+- ✅ **Automatización Completa**: Búsqueda y selección automática
+- ✅ **Manejo de CSP**: Evita errores de Content Security Policy
+- ✅ **Monitoreo Inteligente**: Detecta nueva ventana automáticamente
+- ✅ **Fallback Manual**: Si falla, usuario puede buscar manualmente
+- ✅ **Feedback Visual**: Instrucciones claras sobre el proceso automático
+
+---
+
+## Versión 1.9 - Solución Robusta para CSP y Búsqueda Automática
+
+### 🔧 **Problema Crítico Resuelto**
+- **CSP Bloqueo**: Content Security Policy seguía bloqueando la ejecución de JavaScript inline
+- **Búsqueda Fallida**: La búsqueda automática no funcionaba en la nueva ventana
+- **Detección Inconsistente**: No se detectaba correctamente la nueva ventana de búsqueda
+
+### **Solución Implementada**
+
+#### **1. Apertura Directa de Ventana**
+```javascript
+// Evitar completamente el problema de CSP
+const searchUrl = 'https://secure.roomcloud.net/be/owners_area/HotelsList.jsp?caller=xx&formName=hotels&field=add_hotels';
+const newWindow = window.open(searchUrl, 'LoadHotel', 'width=800,height=800...');
+```
+
+#### **2. Monitoreo Mejorado**
+```javascript
+// Múltiples criterios de búsqueda para la nueva ventana
+let searchTab = tabs.find(tab => tab.url.includes('HotelsList.jsp'));
+if (!searchTab) {
+  searchTab = tabs.find(tab => tab.title.toLowerCase().includes('hotel'));
+}
+if (!searchTab) {
+  searchTab = tabs[tabs.length - 1]; // Última pestaña
+}
+```
+
+#### **3. Búsqueda Robusta**
+```javascript
+// Múltiples selectores para campo de búsqueda
+let searchInput = document.querySelector('input[name="search"]');
+if (!searchInput) searchInput = document.querySelector('input[type="text"]');
+if (!searchInput) searchInput = document.querySelector('#hotel_filter');
+
+// Múltiples eventos para activar búsqueda
+searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+searchInput.dispatchEvent(new Event('keyup', { bubbles: true }));
+```
+
+#### **4. Método Alternativo de Inyección**
+```javascript
+// Si la inyección de script falla, usar mensajes
+try {
+  await chrome.scripting.executeScript({...});
+} catch (scriptError) {
+  await chrome.tabs.sendMessage(searchTab.id, {
+    action: 'searchHotel',
+    hotelId: hotelId
+  });
+}
+```
+
+### **Archivos Modificados**
+- **`content.js`**: 
+  - Apertura directa de ventana (evita CSP)
+  - Función `searchHotelInCurrentPage` para búsqueda local
+  - Listener para mensajes de búsqueda
+- **`background.js`**: 
+  - Monitoreo mejorado con múltiples criterios
+  - Manejo de errores de inyección de script
+  - Método alternativo con mensajes
+
+### **Flujo Mejorado**
+1. **Apertura Directa**: `window.open()` evita CSP completamente
+2. **Monitoreo Inteligente**: Múltiples criterios para encontrar la ventana
+3. **Inyección Robusta**: Script + mensajes como fallback
+4. **Búsqueda Completa**: Múltiples selectores y eventos
+5. **Logs Detallados**: Debugging completo del proceso
+
+### **Resultado Esperado**
+- ✅ **Sin Errores CSP**: Apertura directa evita bloqueos
+- ✅ **Búsqueda Automática**: Funciona en la nueva ventana
+- ✅ **Detección Confiable**: Encuentra la ventana correcta
+- ✅ **Fallback Robusto**: Múltiples métodos de búsqueda
+
+---
+
+## Versión 1.10 - Búsqueda Inteligente con Paginación
+
+### 🔍 **Problema Identificado**
+- **Paginación**: Los logs muestran que el hotel 13677 está en la página (3 elementos lo contienen)
+- **Ubicación Incorrecta**: No se encuentra en los enlaces porque está en otra página de la paginación
+- **Limitación de Vista**: La página actual solo muestra ~50 hoteles de los 2000+ disponibles
+
+### **Nueva Estrategia Implementada**
+
+#### **1. Búsqueda en Enlaces Específicos**
+```javascript
+// Buscar en enlaces con clase específica de RoomCloud
+const hotelLinks = document.querySelectorAll('a.rc_hotelname');
+for (let link of hotelLinks) {
+  const onclick = link.getAttribute('onclick');
+  if (onclick && onclick.includes(hotelId)) {
+    // Extraer y ejecutar changeFormData directamente
+    const match = onclick.match(/changeFormData\('([^']+)','([^']+)','([^']+)','([^']+)'\)/);
+    if (match) {
+      window.changeFormData(field, formName, codice, descrizione);
+    }
+  }
+}
+```
+
+#### **2. Análisis de onclick**
+- **Extracción de Parámetros**: `changeFormData('add_hotels','hotels','ID','NOMBRE')`
+- **Ejecución Directa**: Llama a `window.changeFormData()` directamente
+- **Fallback**: Si no está disponible, hace clic en el enlace
+
+#### **3. Búsqueda en dataSet**
+```javascript
+// Buscar en el array JavaScript que contiene los hoteles
+if (typeof window.dataSet !== 'undefined') {
+  for (let i = 0; i < window.dataSet.length; i++) {
+    if (row[0] && row[0].includes(hotelId)) {
+      // Hacer clic en el enlace correspondiente
+      hotelLinks[i].click();
+    }
+  }
+}
+```
+
+#### **4. Navegación Automática**
+```javascript
+// Si no encuentra, navegar a la siguiente página
+const paginationLinks = document.querySelectorAll('a[href*="page"], .pagination a, .dataTables_paginate a');
+for (let link of paginationLinks) {
+  if (link.textContent.includes('siguiente') || link.textContent.includes('next')) {
+    link.click();
+    setTimeout(() => searchHotelById(hotelId), 2000);
+  }
+}
+```
+
+### **Mejoras Técnicas**
+- **Análisis de Estructura**: Entendimiento completo de cómo RoomCloud maneja los hoteles
+- **Manejo de Paginación**: Búsqueda automática en múltiples páginas
+- **Ejecución de Funciones**: Uso directo de `changeFormData` en lugar de simular clics
+- **Logging Detallado**: Información completa de cada paso del proceso
+
+### **Archivos Modificados**
+- **`background.js`**: Nueva función `searchHotelById` con estrategia inteligente
+- **`test_search.js`**: Script de análisis completo de la página
+- **`manifest.json`**: Agregado `test_search.js` a recursos accesibles
+
+### **✅ RESULTADO EXITOSO**
+- **Búsqueda Automática Funcionando**: El hotel 13677 se encuentra y selecciona automáticamente
+- **Navegación de Paginación Operativa**: El sistema navega entre páginas cuando es necesario
+- **Ejecución de changeFormData Correcta**: La función se ejecuta directamente sin problemas
+- **Cierre Automático de Ventana**: La ventana de búsqueda se cierra después de seleccionar el hotel
+
+### **🎯 Funcionalidad Completa Lograda**
+- ✅ **Apertura de Ventana**: Nueva ventana de búsqueda se abre correctamente
+- ✅ **Búsqueda Automática**: Encuentra hoteles en cualquier página
+- ✅ **Selección Automática**: Ejecuta `changeFormData` correctamente
+- ✅ **Navegación Inteligente**: Busca en múltiples páginas si es necesario
+- ✅ **Cierre Automático**: La ventana se cierra después de la selección
+- ✅ **Retorno a Pestaña Original**: El usuario regresa a la pestaña principal con el nuevo hotel seleccionado
+
+### **🚀 Próximos Pasos**
+- Implementar procesamiento de listas de hoteles
+- Agregar funcionalidad de auditoría automática
+- Optimizar tiempos de espera para mayor velocidad
+
+---
+
+## **v1.11 - Corrección de Descarga CSV** (2024-12-19)
+
+### **🐛 Problema Identificado**
+- **Descripción**: El botón de descarga CSV mostraba "No hay datos para descargar" aunque sí había datos extraídos
+- **Causa**: El evento de descarga estaba verificando una clase CSS `active` que nunca se asignaba
+- **Síntomas**: 
+  - Botón de descarga deshabilitado aunque había datos
+  - Mensaje "No hay datos para descargar" incorrecto
+  - Función de descarga no se ejecutaba
+
+### **✅ Solución Implementada**
+- **Corrección del Event Listener**: Reemplazado el evento de descarga para verificar directamente `extractedData`
+- **Implementación de Descarga Real**: Agregada lógica completa de descarga usando `Blob` y `URL.createObjectURL`
+- **Manejo de Estados**: Corregida la función `updateUI` para asignar/remover clase `active` correctamente
+- **Logs de Debug**: Agregados logs detallados para troubleshooting de descarga
+
+### **🔧 Cambios Técnicos**
+- **`popup.js`**: 
+  - Corregido evento `downloadCSV.addEventListener`
+  - Implementada función de descarga completa con manejo de errores
+  - Corregida función `updateUI` para manejo de clase `active`
+- **Funcionalidad**: Descarga CSV ahora funciona correctamente con datos extraídos
+
+### **🧪 Pruebas Realizadas**
+- ✅ Descarga CSV con datos extraídos
+- ✅ Manejo correcto cuando no hay datos
+- ✅ Generación de nombre de archivo con fecha
+- ✅ Limpieza de recursos después de descarga
+
+---
+
+## **v1.12 - Mejora de Visualización de Progreso** (2024-12-19)
+
+### **🎯 Objetivo**
+- Mejorar la visualización del progreso de auditoría
+- Mostrar resumen resumido de cada paso completado
+- Optimizar el espacio y legibilidad del popup
+
+### **✅ Mejoras Implementadas**
+- **Resumen Compacto**: Rediseñada la función `generateAuditSummary` para mostrar información más concisa
+- **Actualización en Tiempo Real**: El resumen se actualiza después de cada página extraída
+- **Diseño Optimizado**: 
+  - Altura máxima reducida de 300px a 250px
+  - Fuente más pequeña (13px) para mejor aprovechamiento del espacio
+  - Secciones compactas con iconos y colores distintivos
+  - Contador de módulos auditados al final
+
+### **🔧 Cambios Técnicos**
+- **`popup.js`**: 
+  - Nueva función `createCompactSection` para generar secciones uniformes
+  - Resumen más conciso con solo información esencial
+  - Actualización de UI después de cada extracción exitosa
+  - Contador de elementos activos para canales, usuarios y pasarelas
+- **Visualización**: 
+  - Secciones con bordes de color y fondos semitransparentes
+  - Información condensada en una sola línea por sección
+  - Mejor jerarquía visual con iconos y colores
+
+### **📊 Información Mostrada**
+- **Hotel**: Nombre del hotel + cantidad de habitaciones
+- **Disponibilidad**: Moneda y cierres parciales
+- **Canales**: Número de canales activos
+- **Usuarios**: Cantidad total de usuarios encontrados
+- **Pasarelas**: Número de pasarelas activas
+- **PMS**: Estado de integración (Sí/No)
+- **Revenue**: Cantidad de reglas de revenue activas
+- **Comparador**: Estado del comparador de precios
+- **Metabuscadores**: Estado de metabuscadores
+- **Contador**: Total de módulos auditados
+
+### **🔧 Correcciones Adicionales (v1.12.1)**
+- **Hotel**: Agregado número de habitaciones entre paréntesis
+- **Usuarios**: Corregido para mostrar `cantidad_usuarios` en lugar de contar emails
+- **PMS**: Corregido para mostrar `integracion_pms` (Sí/No) en lugar de `integraciones_pms`
+- **Revenue**: Corregido para mostrar `cantidad_reglas_revenue` en lugar de `reglas_revenue`
+
+### **🔧 Correcciones Adicionales (v1.12.2)**
+- **Disponibilidad**: Agregada tarifa más baja USD al resumen
+- **PMS**: Ahora muestra el proveedor específico (ej: "Oracle Opera Cloud OHIP") cuando hay integración
+- **Pasarelas**: Corregido para usar `cantidad_pasarelas_activas` en lugar de contar elementos de `pasarelas_pago_activas`
+
+### **🔧 Correcciones Adicionales (v1.12.3)**
+- **Usuarios**: Agregada exclusión de correos `@cmreservas.com` además de `@pxsol.com` y `@roomcloud.net`
+
+---
+
 ## Versión 1.5 - Simplificación y Mejora de Persistencia
 
 ### 🎯 **Problema de Complejidad Resuelto**

@@ -7,7 +7,9 @@
     "activeTab",
     "storage",
     "downloads",
-    "notifications"
+    "notifications",
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://secure.roomcloud.net/*",
@@ -34,7 +36,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icon48.png"],
+      "resources": ["icon48.png", "debug_search.js", "test_search.js"],
       "matches": ["<all_urls>"]
     }
   ]
