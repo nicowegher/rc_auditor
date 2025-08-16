@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "RoomCloud Auditor",
+  "version": "1.0",
+  "description": "Herramienta para auditar hoteles en RoomCloud",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://secure.roomcloud.net/*",
+    "file://*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "RoomCloud Auditor"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://secure.roomcloud.net/*",
+        "file://*",
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

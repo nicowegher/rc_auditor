@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #45a049;
+    }
+    .button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h3>🏨 RoomCloud Auditor</h3>
+  </div>
+  
+  <button id="autoAudit" class="button" style="background-color: #9C27B0;">🤖 Auditoría Automatizada Completa</button>
+  
+  <div style="display: flex; gap: 5px;">
+    <a id="downloadCSV" href="#" style="flex: 1; text-decoration: none; text-align: center; padding: 10px; margin: 5px 0; background-color: #cccccc; color: #666; border: none; border-radius: 4px; cursor: not-allowed; pointer-events: none;">Descargar CSV</a>
+    <button id="clearData" class="button" style="flex: 1; background-color: #f44336;">Limpiar</button>
+  </div>
+  
+  <div id="status" class="status info" style="display: none;">
+    Listo para auditar
+  </div>
+  
+  <!-- Sección de auditoría semiautomática -->
+  <div id="auditSection" style="display: none; margin-top: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">🔍 Auditoría en Progreso:</h4>
+    
+    <!-- Barra de progreso -->
+    <div style="margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #666;">
+        <span id="currentPage">Página 1 de 10</span>
+        <span id="progressPercent">10%</span>
+      </div>
+      <div style="width: 100%; background-color: #e0e0e0; border-radius: 4px; height: 8px;">
+        <div id="progressBar" style="width: 10%; height: 100%; background-color: #4CAF50; border-radius: 4px; transition: width 0.3s;"></div>
+      </div>
+    </div>
+    
+    <!-- Página actual -->
+    <div style="margin-bottom: 10px; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 12px;">
+      <strong>Página actual:</strong> <span id="currentPageName">Detalles del Hotel</span>
+    </div>
+    
+    <!-- Estado de extracción -->
+    <div id="extractionStatus" style="margin-bottom: 10px; padding: 8px; background-color: #fff3cd; border-radius: 4px; font-size: 12px; display: none;">
+      <strong>Estado:</strong> <span id="extractionStatusText">Esperando confirmación...</span>
+    </div>
+    
+    <!-- Datos extraídos de la página actual -->
+    <div id="currentPageData" style="margin-bottom: 10px; max-height: 100px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; border-radius: 4px; font-size: 11px; display: none;">
+      <strong>Datos extraídos de esta página:</strong>
+      <div id="currentPageDataContent"></div>
+    </div>
+    
+    <!-- Controles de auditoría -->
+    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+      <button id="confirmData" class="button" style="flex: 1; background-color: #4CAF50; font-size: 11px;">✅ Extraer Datos</button>
+      <button id="nextPage" class="button" style="flex: 1; background-color: #2196F3; font-size: 11px;">⏭️ Siguiente Página</button>
+    </div>
+    
+    <!-- Lista de páginas -->
+    <div style="max-height: 120px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; background-color: #f9f9f9; border-radius: 4px; font-size: 10px;">
+      <div id="pagesList">
+        <!-- Lista de páginas se generará aquí -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sección de vista previa de datos -->
+  <div id="dataPreview" style="display: none; margin-top: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">📊 Datos Extraídos:</h4>
+    <div id="extractedData" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; border-radius: 4px; font-size: 11px; line-height: 1.4;">
+      <!-- Los datos se mostrarán aquí -->
+    </div>
+    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+      <span id="dataCount">0</span> registros extraídos
+    </div>
+  </div>
+  
+  <!-- Sección de resumen final -->
+  <div id="auditSummary" style="display: none; margin-top: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">📋 Resumen de Auditoría:</h4>
+    <div id="summaryContent" style="border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 11px; line-height: 1.4;">
+      <!-- El resumen se mostrará aquí -->
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

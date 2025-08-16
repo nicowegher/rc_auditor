@@ -1,0 +1,42 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de log
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de node_modules (si se agrega en el futuro)
+node_modules/
+
+# Archivos de build
+dist/
+build/
+
+# Archivos de configuración local
+.env
+.env.local
+.env.production
+
+# Archivos de Chrome extension
+*.crx
+*.pem
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de datos generados por la extensión
+*.csv
+audit_data/
