@@ -975,7 +975,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('RoomCloud Auditor: Extrayendo datos...');
         const data = await extractDataFromCurrentPage();
         console.log('RoomCloud Auditor: Datos extraídos:', data);
-        sendResponse({ success: true, data: [data] });
+        sendResponse({ success: true, data: data });
       } catch (error) {
         console.error('RoomCloud Auditor: Error extrayendo datos:', error);
         sendResponse({ success: false, error: error.message });

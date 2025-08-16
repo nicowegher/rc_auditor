@@ -34,7 +34,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["audit-interface.html", "audit-interface.js"],
+      "resources": ["icon48.png"],
       "matches": ["<all_urls>"]
     }
   ]

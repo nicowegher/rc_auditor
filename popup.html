@@ -26,14 +26,18 @@
     .header h1 {
       margin: 0;
       font-size: 24px;
-      font-weight: 600;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      color: #ffffff;
     }
     
     .header p {
       margin: 5px 0 0 0;
       font-size: 14px;
-      opacity: 0.9;
+      opacity: 0.95;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      font-weight: 500;
     }
     
     .button {
@@ -88,8 +92,12 @@
       font-size: 13px;
       text-align: center;
       display: none;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(5px);
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     .progress-container {
@@ -117,8 +125,11 @@
     .progress-text {
       font-size: 12px;
       text-align: center;
-      opacity: 0.9;
+      opacity: 0.95;
       display: none;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      font-weight: 500;
     }
     
     .audit-summary {
@@ -158,11 +169,15 @@
     .info-box h4 {
       margin: 0 0 5px 0;
       color: #FFD700;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      font-weight: 600;
     }
     
     .info-box p {
       margin: 3px 0;
-      opacity: 0.9;
+      opacity: 0.95;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     
     a {
@@ -210,10 +225,6 @@
   
   <button id="autoAuditButton" class="button primary-button">
     🚀 Auditoría Automatizada Completa
-  </button>
-  
-  <button id="openInTabButton" class="button secondary-button" style="display: none;">
-    📋 Abrir en Nueva Pestaña
   </button>
   
   <div class="progress-container" id="progressContainer">

@@ -11,15 +11,15 @@ let currentAuditState = {
 
 // URLs de las páginas de auditoría
 const auditPages = [
-  { name: 'Inventario/Disponibilidad', url: 'https://secure.roomcloud.net/availability' },
-  { name: 'Canales', url: 'https://secure.roomcloud.net/channels' },
-  { name: 'Usuarios', url: 'https://secure.roomcloud.net/users' },
-  { name: 'Pasarelas de Pago', url: 'https://secure.roomcloud.net/payment-gateways' },
-  { name: 'Integración PMS', url: 'https://secure.roomcloud.net/pms-integration' },
-  { name: 'Revenue Management', url: 'https://secure.roomcloud.net/revenue-management' },
-  { name: 'Reglas de Negocio', url: 'https://secure.roomcloud.net/business-rules' },
-  { name: 'Comparador de Precios', url: 'https://secure.roomcloud.net/price-comparison' },
-  { name: 'Metabuscadores', url: 'https://secure.roomcloud.net/metasearch' }
+  { name: 'Detalles del Hotel', url: 'https://secure.roomcloud.net/be/owners_area/contentHotel.jsp?item=property_detail' },
+  { name: 'Disponibilidad/Tarifas', url: 'https://secure.roomcloud.net/be/owners_area/availability_r2.jsp' },
+  { name: 'Canales', url: 'https://secure.roomcloud.net/be/owners_area/config.jsp?item=cm_channels' },
+  { name: 'Usuarios', url: 'https://secure.roomcloud.net/be/owners_area/users_list.jsp?item=users_list' },
+  { name: 'Integración PMS', url: 'https://secure.roomcloud.net/be/owners_area/hotel_automation_config.jsp?item=automation' },
+  { name: 'Pasarelas de Pago', url: 'https://secure.roomcloud.net/be/owners_area/payment_gateways_hotel.jsp?item=payment_gateways' },
+  { name: 'Revenue Management', url: 'https://secure.roomcloud.net/be/owners_area/revenue_management_calendar.jsp?item=revenue_calendar' },
+  { name: 'Comparador de Precios', url: 'https://secure.roomcloud.net/be/owners_area/comparison.jsp?item=comparison' },
+  { name: 'Metabuscadores', url: 'https://secure.roomcloud.net/be/owners_area/meta_dashboard.jsp?item=meta_dashboard' }
 ];
 
 // Función para mostrar estado
@@ -41,6 +41,11 @@ async function loadSavedState() {
     if (result.auditState) {
       currentAuditState = { ...currentAuditState, ...result.auditState };
       console.log('RoomCloud Auditor: Estado cargado:', currentAuditState);
+      
+      // Si hay una auditoría en progreso, mostrar mensaje informativo
+      if (currentAuditState.isRunning) {
+        console.log('RoomCloud Auditor: Auditoría en progreso detectada');
+      }
     }
     
     if (result.extractedData) {
@@ -80,7 +85,7 @@ function updateUI() {
   if (currentAuditState.isRunning) {
     // Auditoría en progreso
     if (autoAuditButton) {
-      autoAuditButton.textContent = 'Auditoría en Progreso...';
+      autoAuditButton.textContent = '🔄 Auditoría en Progreso...';
       autoAuditButton.disabled = true;
       autoAuditButton.style.backgroundColor = '#ff9800';
     }
@@ -89,20 +94,18 @@ function updateUI() {
     if (progressBar && progressText) {
       const progress = (currentAuditState.currentStep / currentAuditState.totalSteps) * 100;
       progressBar.style.width = `${progress}%`;
-      progressText.textContent = `Paso ${currentAuditState.currentStep + 1} de ${currentAuditState.totalSteps}`;
+      progressText.textContent = `Paso ${currentAuditState.currentStep + 1} de ${currentAuditState.totalSteps} - ${auditPages[currentAuditState.currentStep]?.name || 'Procesando...'}`;
       progressBar.style.display = 'block';
       progressText.style.display = 'block';
     }
     
-    // Mostrar botón para abrir en pestaña
-    if (openInTabButton) {
-      openInTabButton.style.display = 'block';
-    }
+    // Mostrar mensaje de auditoría en progreso
+    showAuditInProgressMessage();
     
   } else {
     // Auditoría no en progreso
     if (autoAuditButton) {
-      autoAuditButton.textContent = 'Auditoría Automatizada Completa';
+      autoAuditButton.textContent = '🚀 Auditoría Automatizada Completa';
       autoAuditButton.disabled = false;
       autoAuditButton.style.backgroundColor = '#4CAF50';
     }
@@ -113,32 +116,50 @@ function updateUI() {
       progressText.style.display = 'none';
     }
     
-    // Ocultar botón de pestaña
-    if (openInTabButton) {
-      openInTabButton.style.display = 'none';
+    // Ocultar mensaje de auditoría en progreso
+    const statusDiv = document.getElementById('status');
+    if (statusDiv && !statusDiv.textContent.includes('Error')) {
+      statusDiv.style.display = 'none';
     }
   }
   
   // Habilitar descarga si hay datos
-  if (downloadLink && extractedData.length > 0) {
+  if (downloadLink && extractedData && extractedData.length > 0) {
     downloadLink.style.backgroundColor = '#4CAF50';
     downloadLink.style.color = 'white';
     downloadLink.style.cursor = 'pointer';
     downloadLink.style.pointerEvents = 'auto';
+    downloadLink.textContent = `📥 Descargar CSV (${extractedData.length} datos)`;
+  } else if (downloadLink) {
+    downloadLink.style.backgroundColor = '#ccc';
+    downloadLink.style.color = '#666';
+    downloadLink.style.cursor = 'not-allowed';
+    downloadLink.style.pointerEvents = 'none';
+    downloadLink.textContent = '📥 Descargar CSV (sin datos)';
   }
   
   // Mostrar resumen si hay datos
-  if (auditSummary && extractedData.length > 0) {
+  if (auditSummary && extractedData && extractedData.length > 0) {
     auditSummary.innerHTML = generateAuditSummary(extractedData);
     auditSummary.style.display = 'block';
+  } else if (auditSummary) {
+    auditSummary.style.display = 'none';
   }
 }
 
-// Función para abrir interfaz en nueva pestaña
-function openInNewTab() {
-  chrome.tabs.create({
-    url: chrome.runtime.getURL('audit-interface.html')
-  });
+// Función para mostrar mensaje de auditoría en progreso
+function showAuditInProgressMessage() {
+  const statusDiv = document.getElementById('status');
+  if (statusDiv) {
+    statusDiv.innerHTML = `
+      <div style="background: #FFF3E0; border: 2px solid #FF9800; border-radius: 8px; padding: 15px; margin: 10px 0;">
+        <h4 style="color: #E65100; margin: 0 0 10px 0;">🔄 Auditoría en Progreso</h4>
+        <p style="color: #333333; margin: 5px 0;">La auditoría está ejecutándose en segundo plano.</p>
+        <p style="color: #555555; margin: 5px 0; font-size: 12px;">Puedes cerrar este popup y reabrirlo sin perder el progreso.</p>
+      </div>
+    `;
+    statusDiv.style.display = 'block';
+  }
 }
 
 // Función para generar resumen de auditoría
@@ -159,70 +180,70 @@ function generateAuditSummary(data) {
     });
   });
   
-  let summary = '<div style="max-height: 300px; overflow-y: auto; padding: 10px; background: #f9f9f9; border-radius: 5px;">';
+  let summary = '<div style="max-height: 300px; overflow-y: auto; padding: 15px; background: #ffffff; border-radius: 8px; border: 2px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
   
   // Hotel
   if (consolidatedData.nombre_hotel) {
-    summary += `<h3 style="color: #2196F3; margin: 10px 0;">🏨 Hotel: ${consolidatedData.nombre_hotel}</h3>`;
+    summary += `<h3 style="color: #1565C0; margin: 10px 0; font-size: 18px; border-bottom: 2px solid #1565C0; padding-bottom: 5px;">🏨 Hotel: ${consolidatedData.nombre_hotel}</h3>`;
   }
   
   // Disponibilidad
   if (consolidatedData.moneda_carga || consolidatedData.tarifa_mas_baja_usd || consolidatedData.cierres_parciales) {
-    summary += `<h4 style="color: #4CAF50; margin: 8px 0;">📊 Disponibilidad</h4>`;
-    if (consolidatedData.moneda_carga) summary += `<p><strong>Moneda:</strong> ${consolidatedData.moneda_carga}</p>`;
-    if (consolidatedData.tarifa_mas_baja_usd) summary += `<p><strong>Tarifa más baja USD:</strong> ${consolidatedData.tarifa_mas_baja_usd}</p>`;
-    if (consolidatedData.cierres_parciales) summary += `<p><strong>Cierres parciales:</strong> ${consolidatedData.cierres_parciales}</p>`;
+    summary += `<h4 style="color: #2E7D32; margin: 12px 0 8px 0; font-size: 16px; background: #E8F5E8; padding: 5px 10px; border-radius: 4px;">📊 Disponibilidad</h4>`;
+    if (consolidatedData.moneda_carga) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #2E7D32;">Moneda:</strong> <span style="color: #555555;">${consolidatedData.moneda_carga}</span></p>`;
+    if (consolidatedData.tarifa_mas_baja_usd) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #2E7D32;">Tarifa más baja USD:</strong> <span style="color: #555555;">${consolidatedData.tarifa_mas_baja_usd}</span></p>`;
+    if (consolidatedData.cierres_parciales) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #2E7D32;">Cierres parciales:</strong> <span style="color: #555555;">${consolidatedData.cierres_parciales}</span></p>`;
   }
   
   // Canales
   if (consolidatedData.canales_activos || consolidatedData.canales_inactivos) {
-    summary += `<h4 style="color: #FF9800; margin: 8px 0;">🌐 Canales</h4>`;
-    if (consolidatedData.canales_activos) summary += `<p><strong>Activos:</strong> ${consolidatedData.canales_activos}</p>`;
-    if (consolidatedData.canales_inactivos) summary += `<p><strong>Inactivos:</strong> ${consolidatedData.canales_inactivos}</p>`;
+    summary += `<h4 style="color: #E65100; margin: 12px 0 8px 0; font-size: 16px; background: #FFF3E0; padding: 5px 10px; border-radius: 4px;">🌐 Canales</h4>`;
+    if (consolidatedData.canales_activos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #E65100;">Activos:</strong> <span style="color: #555555;">${consolidatedData.canales_activos}</span></p>`;
+    if (consolidatedData.canales_inactivos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #E65100;">Inactivos:</strong> <span style="color: #555555;">${consolidatedData.canales_inactivos}</span></p>`;
   }
   
   // Usuarios
   if (consolidatedData.usuarios_activos || consolidatedData.usuarios_inactivos) {
-    summary += `<h4 style="color: #9C27B0; margin: 8px 0;">👥 Usuarios</h4>`;
-    if (consolidatedData.usuarios_activos) summary += `<p><strong>Activos:</strong> ${consolidatedData.usuarios_activos}</p>`;
-    if (consolidatedData.usuarios_inactivos) summary += `<p><strong>Inactivos:</strong> ${consolidatedData.usuarios_inactivos}</p>`;
+    summary += `<h4 style="color: #6A1B9A; margin: 12px 0 8px 0; font-size: 16px; background: #F3E5F5; padding: 5px 10px; border-radius: 4px;">👥 Usuarios</h4>`;
+    if (consolidatedData.usuarios_activos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #6A1B9A;">Activos:</strong> <span style="color: #555555;">${consolidatedData.usuarios_activos}</span></p>`;
+    if (consolidatedData.usuarios_inactivos) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #6A1B9A;">Inactivos:</strong> <span style="color: #555555;">${consolidatedData.usuarios_inactivos}</span></p>`;
   }
   
   // Pasarelas de Pago
   if (consolidatedData.pasarelas_pago_activas || consolidatedData.pasarelas_pago_inactivas) {
-    summary += `<h4 style="color: #E91E63; margin: 8px 0;">💳 Pasarelas de Pago</h4>`;
-    if (consolidatedData.pasarelas_pago_activas) summary += `<p><strong>Activas:</strong> ${consolidatedData.pasarelas_pago_activas}</p>`;
-    if (consolidatedData.pasarelas_pago_inactivas) summary += `<p><strong>Inactivas:</strong> ${consolidatedData.pasarelas_pago_inactivas}</p>`;
+    summary += `<h4 style="color: #C2185B; margin: 12px 0 8px 0; font-size: 16px; background: #FCE4EC; padding: 5px 10px; border-radius: 4px;">💳 Pasarelas de Pago</h4>`;
+    if (consolidatedData.pasarelas_pago_activas) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #C2185B;">Activas:</strong> <span style="color: #555555;">${consolidatedData.pasarelas_pago_activas}</span></p>`;
+    if (consolidatedData.pasarelas_pago_inactivas) summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #C2185B;">Inactivas:</strong> <span style="color: #555555;">${consolidatedData.pasarelas_pago_inactivas}</span></p>`;
   }
   
   // Integración PMS
   if (consolidatedData.integraciones_pms) {
-    summary += `<h4 style="color: #607D8B; margin: 8px 0;">🔗 Integración PMS</h4>`;
-    summary += `<p><strong>Integraciones:</strong> ${consolidatedData.integraciones_pms}</p>`;
+    summary += `<h4 style="color: #455A64; margin: 12px 0 8px 0; font-size: 16px; background: #ECEFF1; padding: 5px 10px; border-radius: 4px;">🔗 Integración PMS</h4>`;
+    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #455A64;">Integraciones:</strong> <span style="color: #555555;">${consolidatedData.integraciones_pms}</span></p>`;
   }
   
   // Revenue Management
   if (consolidatedData.reglas_revenue) {
-    summary += `<h4 style="color: #795548; margin: 8px 0;">💰 Revenue Management</h4>`;
-    summary += `<p><strong>Reglas:</strong> ${consolidatedData.reglas_revenue}</p>`;
+    summary += `<h4 style="color: #5D4037; margin: 12px 0 8px 0; font-size: 16px; background: #EFEBE9; padding: 5px 10px; border-radius: 4px;">💰 Revenue Management</h4>`;
+    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #5D4037;">Reglas:</strong> <span style="color: #555555;">${consolidatedData.reglas_revenue}</span></p>`;
   }
   
   // Reglas de Negocio
   if (consolidatedData.reglas_negocio) {
-    summary += `<h4 style="color: #3F51B5; margin: 8px 0;">⚙️ Reglas de Negocio</h4>`;
-    summary += `<p><strong>Reglas:</strong> ${consolidatedData.reglas_negocio}</p>`;
+    summary += `<h4 style="color: #303F9F; margin: 12px 0 8px 0; font-size: 16px; background: #E8EAF6; padding: 5px 10px; border-radius: 4px;">⚙️ Reglas de Negocio</h4>`;
+    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #303F9F;">Reglas:</strong> <span style="color: #555555;">${consolidatedData.reglas_negocio}</span></p>`;
   }
   
   // Comparador de Precios
   if (consolidatedData.comparador_precios) {
-    summary += `<h4 style="color: #FF5722; margin: 8px 0;">📈 Comparador de Precios</h4>`;
-    summary += `<p><strong>Estado:</strong> ${consolidatedData.comparador_precios}</p>`;
+    summary += `<h4 style="color: #D84315; margin: 12px 0 8px 0; font-size: 16px; background: #FBE9E7; padding: 5px 10px; border-radius: 4px;">📈 Comparador de Precios</h4>`;
+    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #D84315;">Estado:</strong> <span style="color: #555555;">${consolidatedData.comparador_precios}</span></p>`;
   }
   
   // Metabuscadores
   if (consolidatedData.metabuscadores) {
-    summary += `<h4 style="color: #00BCD4; margin: 8px 0;">🔍 Metabuscadores</h4>`;
-    summary += `<p><strong>Estado:</strong> ${consolidatedData.metabuscadores}</p>`;
+    summary += `<h4 style="color: #00695C; margin: 12px 0 8px 0; font-size: 16px; background: #E0F2F1; padding: 5px 10px; border-radius: 4px;">🔍 Metabuscadores</h4>`;
+    summary += `<p style="color: #333333; margin: 5px 0; padding: 3px 0;"><strong style="color: #00695C;">Estado:</strong> <span style="color: #555555;">${consolidatedData.metabuscadores}</span></p>`;
   }
   
   summary += '</div>';
@@ -231,22 +252,49 @@ function generateAuditSummary(data) {
 
 // Función para convertir datos a CSV
 function convertToCSV(data) {
-  if (data.length === 0) return '';
+  if (!data || data.length === 0) {
+    console.log('RoomCloud Auditor: No hay datos para convertir a CSV');
+    return '';
+  }
   
+  console.log('RoomCloud Auditor: Convirtiendo datos a CSV:', data);
+  
+  // Si solo hay un elemento, crear un array
+  const dataArray = Array.isArray(data) ? data : [data];
+  
+  // Consolidar datos de múltiples páginas
   const consolidatedData = {};
   const excludedFields = ['url', 'fecha_extraccion', 'pagina_actual'];
   
-  data.forEach(item => {
-    Object.keys(item).forEach(key => {
-      if (!excludedFields.includes(key)) {
-        if (consolidatedData[key] && consolidatedData[key] !== item[key]) {
-          consolidatedData[key] = `${consolidatedData[key]} | ${item[key]}`;
-        } else {
-          consolidatedData[key] = item[key];
+  dataArray.forEach((item, index) => {
+    console.log(`RoomCloud Auditor: Procesando item ${index}:`, item);
+    
+    if (item && typeof item === 'object') {
+      Object.keys(item).forEach(key => {
+        if (!excludedFields.includes(key)) {
+          const value = item[key];
+          
+          // Convertir arrays y objetos a string
+          let stringValue = '';
+          if (Array.isArray(value)) {
+            stringValue = value.join('; ');
+          } else if (value && typeof value === 'object') {
+            stringValue = JSON.stringify(value);
+          } else {
+            stringValue = String(value || '');
+          }
+          
+          if (consolidatedData[key] && consolidatedData[key] !== stringValue) {
+            consolidatedData[key] = `${consolidatedData[key]} | ${stringValue}`;
+          } else {
+            consolidatedData[key] = stringValue;
+          }
         }
-      }
-    });
+      });
+    }
   });
+  
+  console.log('RoomCloud Auditor: Datos consolidados:', consolidatedData);
   
   const headers = Object.keys(consolidatedData);
   const csvRows = [headers.join(',')];
@@ -258,7 +306,10 @@ function convertToCSV(data) {
   
   csvRows.push(csvRow.join(','));
   
-  return csvRows.join('\n');
+  const csvContent = csvRows.join('\n');
+  console.log('RoomCloud Auditor: CSV generado:', csvContent);
+  
+  return csvContent;
 }
 
 // Función principal de auditoría automatizada
@@ -403,7 +454,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   const autoAuditButton = document.getElementById('autoAuditButton');
   const downloadLink = document.getElementById('downloadCSV');
   const clearButton = document.getElementById('clearData');
-  const openInTabButton = document.getElementById('openInTabButton');
   
   if (autoAuditButton) {
     autoAuditButton.addEventListener('click', runCompleteAudit);
@@ -411,10 +461,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   if (clearButton) {
     clearButton.addEventListener('click', clearData);
-  }
-  
-  if (openInTabButton) {
-    openInTabButton.addEventListener('click', openInNewTab);
   }
   
   // Actualizar UI inicial
