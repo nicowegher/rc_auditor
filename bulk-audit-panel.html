@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoomCloud Auditor - Panel de Auditoría Masiva</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        
+        .header .subtitle {
+            margin-top: 5px;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .status-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .status-item .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .status-item .label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .current-hotel {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .current-hotel .title {
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .current-hotel .info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .progress-section {
+            margin-bottom: 30px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .hotels-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .hotels-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .hotels-list h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .hotel-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid #28a745;
+            font-size: 14px;
+        }
+        
+        .hotel-item.pending {
+            border-left-color: #ffc107;
+            background: #fff8e1;
+        }
+        
+        .hotel-item.error {
+            border-left-color: #dc3545;
+            background: #ffebee;
+        }
+        
+        .hotel-item.current {
+            border-left-color: #667eea;
+            background: #e3f2fd;
+            font-weight: 600;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .log-section {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #e2e8f0;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .log-entry.info {
+            color: #90cdf4;
+        }
+        
+        .log-entry.success {
+            color: #9ae6b4;
+        }
+        
+        .log-entry.error {
+            color: #feb2b2;
+        }
+        
+        .log-entry.warning {
+            color: #fbd38d;
+        }
+        
+        @media (max-width: 768px) {
+            .hotels-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏨 RoomCloud Auditor</h1>
+            <div class="subtitle">Panel de Auditoría Masiva</div>
+        </div>
+        
+        <div class="content">
+            <div class="status-section">
+                <div class="status-title">📊 Estado de la Auditoría</div>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="number" id="totalHotels">0</div>
+                        <div class="label">Total de Hoteles</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="number" id="completedHotels">0</div>
+                        <div class="label">Completados</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="number" id="pendingHotels">0</div>
+                        <div class="label">Pendientes</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="number" id="failedHotels">0</div>
+                        <div class="label">Fallidos</div>
+                    </div>
+                </div>
+                
+                <div class="current-hotel" id="currentHotelSection" style="display: none;">
+                    <div class="title">🎯 Hotel Actual</div>
+                    <div class="info">
+                        <span id="currentHotelName">-</span>
+                        <span id="currentHotelId">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">0% completado</div>
+            </div>
+            
+            <div class="hotels-section">
+                <div class="hotels-list">
+                    <h3>✅ Hoteles Completados</h3>
+                    <div id="completedHotelsList"></div>
+                </div>
+                
+                <div class="hotels-list">
+                    <h3>⏳ Hoteles Pendientes</h3>
+                    <div id="pendingHotelsList"></div>
+                </div>
+            </div>
+            
+            <div class="log-section">
+                <h3>📝 Registro de Actividad</h3>
+                <div id="logContainer"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" id="startButton">🚀 Iniciar Auditoría</button>
+                <button class="btn btn-danger" id="stopButton" style="display: none;">⏹️ Detener Auditoría</button>
+                <button class="btn btn-success" id="downloadButton" style="display: none;">📥 Descargar CSV</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="bulk-audit-panel.js"></script>
+</body>
+</html>

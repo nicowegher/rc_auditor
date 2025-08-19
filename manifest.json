@@ -36,7 +36,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icon48.png", "debug_search.js", "test_search.js"],
+      "resources": ["icon48.png", "bulk-audit-panel.html", "bulk-audit-panel.js"],
       "matches": ["<all_urls>"]
     }
   ]

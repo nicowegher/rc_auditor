@@ -22,6 +22,12 @@ function detectCurrentPage() {
     return 'test_page';
   }
   
+  // Detectar página principal (home.jsp) - PRIMERA PRIORIDAD
+  if (url.includes('home.jsp') || url.includes('owners_area/home.jsp')) {
+    console.log('RoomCloud Auditor: Página detectada como home (dashboard principal)');
+    return 'home';
+  }
+  
   // Detectar por URL y elementos en la página
   if (url.includes('property_detail') || document.querySelector('select[name="F_category"]')) {
     console.log('RoomCloud Auditor: Página detectada como property_detail');
@@ -38,19 +44,19 @@ function detectCurrentPage() {
   } else if (url.includes('payment') || (document.querySelector('table.table tbody tr.pg_online, table.table tbody tr.pg_offline') && document.querySelector('td:nth-child(2) span b'))) {
     console.log('RoomCloud Auditor: Página detectada como payment_gateways');
     return 'payment_gateways';
-  } else if (url.includes('users') || document.querySelector('.fa-envelope')) {
+  } else if (url.includes('users_list.jsp') || (url.includes('users') && document.querySelector('.fa-envelope') && !url.includes('meta'))) {
     console.log('RoomCloud Auditor: Página detectada como users_list');
     return 'users_list';
-  } else if (url.includes('revenue') || document.querySelector('table.table tbody tr th a')) {
+  } else if (url.includes('revenue_management_calendar.jsp') || (url.includes('revenue') && document.querySelector('table.table tbody tr th a'))) {
     console.log('RoomCloud Auditor: Página detectada como revenue_calendar');
     return 'revenue_calendar';
   } else if (url.includes('rules') || document.querySelector('.active-rule, [class*="rule"], [id*="rule"]')) {
     console.log('RoomCloud Auditor: Página detectada como rules');
     return 'rules';
-  } else if (url.includes('comparison') || document.querySelector('form[name="formSearch"] input[name^="cp_"]') || document.querySelector('h1')?.textContent.includes('Comparación de Tarifas')) {
+  } else if (url.includes('comparison.jsp') || (url.includes('comparison') && (document.querySelector('form[name="formSearch"] input[name^="cp_"]') || document.querySelector('h1')?.textContent.includes('Comparación de Tarifas')))) {
     console.log('RoomCloud Auditor: Página detectada como comparison');
     return 'comparison';
-  } else if (url.includes('meta') || document.querySelector('h1')?.textContent.includes('Metabuscadores') || document.querySelector('[class*="meta-dashboard"]') || document.querySelector('table.table-striped tbody tr td span.online, table.table-striped tbody tr td span.offline')) {
+  } else if (url.includes('meta_dashboard.jsp') || (url.includes('meta') && (document.querySelector('h1')?.textContent.includes('Metabuscadores') || document.querySelector('[class*="meta-dashboard"]') || document.querySelector('table.table-striped tbody tr td span.online, table.table-striped tbody tr td span.offline')))) {
     console.log('RoomCloud Auditor: Página detectada como meta_dashboard');
     return 'meta_dashboard';
   } else {
@@ -64,20 +70,43 @@ function extractHotelInfo() {
   const data = {};
   
   try {
+    console.log('RoomCloud Auditor: Extrayendo información del hotel...');
+    
     // Buscar nombre del hotel en diferentes ubicaciones
     let hotelName = '';
     let hotelId = '';
     
-    // Buscar en el campo específico de RoomCloud (F_description)
-    const descriptionInput = document.querySelector('input[name="F_description"]');
-    if (descriptionInput && descriptionInput.value) {
-      hotelName = descriptionInput.value.trim();
+    // PRIMERA PRIORIDAD: Buscar en el menú de navegación donde siempre está disponible
+    const hotelMenuElement = document.querySelector('.hotels-menu .dropdown-toggle .hidden-xs');
+    if (hotelMenuElement && hotelMenuElement.textContent) {
+      const menuText = hotelMenuElement.textContent.trim();
+      console.log('RoomCloud Auditor: Texto del menú encontrado:', menuText);
+      
+      // Extraer nombre e ID del formato "Hotel Name [ID]"
+      const hotelMatch = menuText.match(/^(.+?)\s*\[(\d+)\]$/);
+      if (hotelMatch) {
+        hotelName = hotelMatch[1].trim();
+        hotelId = hotelMatch[2].trim();
+        console.log('RoomCloud Auditor: Hotel extraído del menú - Nombre:', hotelName, 'ID:', hotelId);
+      }
     }
     
-    // Buscar ID del hotel en diferentes ubicaciones
-    const idInput = document.querySelector('input[name="F_id"]');
-    if (idInput && idInput.value) {
-      hotelId = idInput.value.trim();
+    // Si no se encontró en el menú, buscar en el campo específico de RoomCloud (F_description)
+    if (!hotelName) {
+      const descriptionInput = document.querySelector('input[name="F_description"]');
+      if (descriptionInput && descriptionInput.value) {
+        hotelName = descriptionInput.value.trim();
+        console.log('RoomCloud Auditor: Nombre encontrado en F_description:', hotelName);
+      }
+    }
+    
+    // Si no se encontró en el menú, buscar ID en el campo específico de RoomCloud (F_id)
+    if (!hotelId) {
+      const idInput = document.querySelector('input[name="F_id"]');
+      if (idInput && idInput.value) {
+        hotelId = idInput.value.trim();
+        console.log('RoomCloud Auditor: ID encontrado en F_id:', hotelId);
+      }
     }
     
     // Buscar en el título de la página como fallback
@@ -85,10 +114,12 @@ function extractHotelInfo() {
       const titleElement = document.querySelector('title');
       if (titleElement && titleElement.textContent) {
         const titleText = titleElement.textContent.trim();
+        console.log('RoomCloud Auditor: Título de página:', titleText);
         // Extraer nombre del hotel del título (formato típico: "Hotel Name - RoomCloud")
         const nameMatch = titleText.match(/^(.+?)(?:\s*[-–]\s*RoomCloud|\s*[-–]\s*RC)/i);
         if (nameMatch) {
           hotelName = nameMatch[1].trim();
+          console.log('RoomCloud Auditor: Nombre extraído del título:', hotelName);
         }
       }
     }
@@ -117,11 +148,33 @@ function extractHotelInfo() {
     }
     
     data.nombre_hotel = hotelName || 'N/A';
+    data.id_hotel = hotelId || 'N/A';
+    
+    console.log('RoomCloud Auditor: Resultado final - Nombre:', data.nombre_hotel, 'ID:', data.id_hotel);
     
     // Buscar en el campo específico de RoomCloud (hotels_id)
     const hotelsIdInput = document.querySelector('input[name="hotels_id"]');
     if (hotelsIdInput && hotelsIdInput.value) {
       hotelId = hotelsIdInput.value.trim();
+      console.log('RoomCloud Auditor: ID encontrado en hotels_id:', hotelId);
+    }
+    
+    // Buscar en el campo específico de RoomCloud (hotel_id)
+    if (!hotelId) {
+      const hotelIdInput = document.querySelector('input[name="hotel_id"]');
+      if (hotelIdInput && hotelIdInput.value) {
+        hotelId = hotelIdInput.value.trim();
+        console.log('RoomCloud Auditor: ID encontrado en hotel_id:', hotelId);
+      }
+    }
+    
+    // Buscar en el campo específico de RoomCloud (rc_id)
+    if (!hotelId) {
+      const rcIdInput = document.querySelector('input[name="rc_id"]');
+      if (rcIdInput && rcIdInput.value) {
+        hotelId = rcIdInput.value.trim();
+        console.log('RoomCloud Auditor: ID encontrado en rc_id:', hotelId);
+      }
     }
     
     // Buscar en la URL como fallback
@@ -140,7 +193,27 @@ function extractHotelInfo() {
         const idValue = element.getAttribute('data-id') || element.textContent.trim();
         if (idValue && /^[A-Z0-9]+$/.test(idValue) && idValue.length > 3) {
           hotelId = idValue;
+          console.log('RoomCloud Auditor: ID encontrado en elemento DOM:', hotelId);
           break;
+        }
+      }
+    }
+    
+    // Buscar en elementos que contengan números que podrían ser IDs de hotel
+    if (!hotelId) {
+      const allElements = document.querySelectorAll('*');
+      for (let element of allElements) {
+        const text = element.textContent.trim();
+        // Buscar números de 3-5 dígitos que podrían ser IDs de hotel
+        const idMatch = text.match(/\b(\d{3,5})\b/);
+        if (idMatch) {
+          const potentialId = idMatch[1];
+          // Verificar que no sea parte de una fecha o número de teléfono
+          if (!text.includes('@') && !text.includes('-') && !text.includes('/')) {
+            hotelId = potentialId;
+            console.log('RoomCloud Auditor: ID encontrado en texto del DOM:', hotelId);
+            break;
+          }
         }
       }
     }
@@ -160,7 +233,6 @@ function extractHotelInfo() {
       }
     }
     
-    data.id_hotel = hotelId || 'N/A';
     
   } catch (error) {
     console.error('Error extrayendo información del hotel:', error);
@@ -295,6 +367,10 @@ function extractAvailabilityData() {
       }
     }
     
+    // Guardar la tarifa más baja independientemente de la moneda
+    data.tarifa_mas_baja = lowestRate !== Infinity ? lowestRate : 'N/A';
+    
+    // Mantener compatibilidad con el campo anterior
     data.tarifa_mas_baja_usd = lowestRate !== Infinity ? lowestRate : 'N/A';
     
     // ===== DETECCIÓN DE CIERRE DE VENTAS =====
@@ -636,6 +712,10 @@ async function extractPaymentGateways() {
     console.log('RoomCloud Auditor: Pasarelas activas extraídas:', data.pasarelas_pago_activas);
     console.log('RoomCloud Auditor: Cantidad de pasarelas activas:', data.cantidad_pasarelas_activas);
     console.log('RoomCloud Auditor: Lista completa de pasarelas activas:', activeGateways);
+    console.log('RoomCloud Auditor: === PASARELAS RESULTADO FINAL ===');
+    console.log('RoomCloud Auditor: pasarelas_pago_activas:', data.pasarelas_pago_activas);
+    console.log('RoomCloud Auditor: cantidad_pasarelas_activas:', data.cantidad_pasarelas_activas);
+    console.log('RoomCloud Auditor: === FIN PASARELAS ===');
   } catch (error) {
     console.error('Error extrayendo pasarelas de pago:', error);
     data.pasarelas_pago_activas = 'Error en extracción';
@@ -649,22 +729,88 @@ function extractRevenueRules() {
   const data = {};
   try {
     console.log('RoomCloud Auditor: Buscando reglas de Revenue Management...');
+    console.log('RoomCloud Auditor: URL actual:', window.location.href);
     
     const activeRules = [];
-    const ruleRows = document.querySelectorAll('table.table tbody tr');
-    console.log('RoomCloud Auditor: Encontradas', ruleRows.length, 'filas de reglas');
+    
+    // Buscar la tabla principal de Revenue Calendar - múltiples selectores
+    let revenueTable = document.querySelector('table.table');
+    if (!revenueTable) {
+      revenueTable = document.querySelector('table');
+      console.log('RoomCloud Auditor: Usando selector alternativo para tabla');
+    }
+    
+    if (!revenueTable) {
+      console.log('RoomCloud Auditor: No se encontró tabla de Revenue Calendar');
+      console.log('RoomCloud Auditor: Tablas disponibles:', document.querySelectorAll('table').length);
+      data.reglas_revenue_activas = 'N/A';
+      data.cantidad_reglas_revenue = 0;
+      return data;
+    }
+    
+    // Buscar filas que contengan reglas (filas con <th> que contengan enlaces)
+    const ruleRows = revenueTable.querySelectorAll('tbody tr');
+    console.log('RoomCloud Auditor: Encontradas', ruleRows.length, 'filas de reglas en tabla de Revenue Calendar');
     
     for (let row of ruleRows) {
+      // Buscar elementos <th> que contengan enlaces (nombres de reglas)
       const ruleNameElement = row.querySelector('th a');
       if (ruleNameElement) {
         const ruleName = ruleNameElement.textContent.trim();
+        console.log('RoomCloud Auditor: Regla encontrada:', ruleName);
+        
         // Verificar si la regla tiene celdas coloreadas (activas)
-        const coloredCells = row.querySelectorAll('td[bgcolor]');
+        // Las reglas activas tienen celdas con bgcolor="#83F79A" (verde para Stock), "#E04158" (rojo para Precio), "#00ffff" (azul para Opener)
+        const coloredCells = row.querySelectorAll('td[bgcolor="#83F79A"], td[bgcolor="#00ffff"], td[bgcolor="#E04158"]');
+        
         if (coloredCells.length > 0) {
           activeRules.push(ruleName);
-          console.log('RoomCloud Auditor: Regla activa encontrada:', ruleName);
+          console.log('RoomCloud Auditor: Regla ACTIVA encontrada:', ruleName, 'con', coloredCells.length, 'celdas coloreadas');
         } else {
-          console.log('RoomCloud Auditor: Regla inactiva:', ruleName);
+          console.log('RoomCloud Auditor: Regla INACTIVA:', ruleName, '- no tiene celdas coloreadas');
+        }
+      }
+    }
+    
+    // Si no encontramos reglas en tbody, buscar en toda la tabla
+    if (activeRules.length === 0) {
+      console.log('RoomCloud Auditor: No se encontraron reglas en tbody, buscando en toda la tabla...');
+      const allRows = revenueTable.querySelectorAll('tr');
+      
+      for (let row of allRows) {
+        const ruleNameElement = row.querySelector('th a');
+        if (ruleNameElement) {
+          const ruleName = ruleNameElement.textContent.trim();
+          console.log('RoomCloud Auditor: Regla encontrada (búsqueda ampliada):', ruleName);
+          
+          // Verificar si la regla tiene celdas coloreadas (activas)
+          const coloredCells = row.querySelectorAll('td[bgcolor="#83F79A"], td[bgcolor="#00ffff"], td[bgcolor="#E04158"]');
+          
+          if (coloredCells.length > 0) {
+            activeRules.push(ruleName);
+            console.log('RoomCloud Auditor: Regla ACTIVA encontrada (búsqueda ampliada):', ruleName, 'con', coloredCells.length, 'celdas coloreadas');
+          }
+        }
+      }
+    }
+    
+    // También buscar reglas que tengan iconos de engranaje (indicador de reglas activas)
+    const gearIcons = revenueTable.querySelectorAll('i.fa-cogs');
+    console.log('RoomCloud Auditor: Encontrados', gearIcons.length, 'iconos de engranaje (reglas activas)');
+    
+    // Si hay iconos de engranaje pero no se detectaron reglas por color, buscar las reglas que los contengan
+    if (gearIcons.length > 0 && activeRules.length === 0) {
+      const allRows = revenueTable.querySelectorAll('tr');
+      for (let row of allRows) {
+        const ruleNameElement = row.querySelector('th a');
+        const hasGearIcon = row.querySelector('i.fa-cogs');
+        
+        if (ruleNameElement && hasGearIcon) {
+          const ruleName = ruleNameElement.textContent.trim();
+          if (!activeRules.includes(ruleName)) {
+            activeRules.push(ruleName);
+            console.log('RoomCloud Auditor: Regla ACTIVA encontrada por icono de engranaje:', ruleName);
+          }
         }
       }
     }
@@ -673,6 +819,10 @@ function extractRevenueRules() {
     data.cantidad_reglas_revenue = activeRules.length;
     console.log('RoomCloud Auditor: Reglas de revenue activas extraídas:', data.reglas_revenue_activas);
     console.log('RoomCloud Auditor: Cantidad de reglas de revenue:', data.cantidad_reglas_revenue);
+    console.log('RoomCloud Auditor: === REVENUE MANAGEMENT RESULTADO FINAL ===');
+    console.log('RoomCloud Auditor: reglas_revenue_activas:', data.reglas_revenue_activas);
+    console.log('RoomCloud Auditor: cantidad_reglas_revenue:', data.cantidad_reglas_revenue);
+    console.log('RoomCloud Auditor: === FIN REVENUE MANAGEMENT ===');
     
   } catch (error) {
     console.error('Error extrayendo reglas de revenue:', error);
@@ -689,6 +839,7 @@ function extractPriceComparison() {
   
   try {
     console.log('RoomCloud Auditor: Verificando estado del comparador de precios...');
+    console.log('RoomCloud Auditor: URL actual:', window.location.href);
     
     // Buscar checkboxes de hoteles para comparar (nombres que empiecen con 'cp_')
     const hotelCheckboxes = document.querySelectorAll('input[name^="cp_"]');
@@ -735,6 +886,11 @@ function extractPriceComparison() {
       console.log('RoomCloud Auditor: Comparador DESHABILITADO - no se encontraron hoteles para comparar');
     }
     
+    console.log('RoomCloud Auditor: === COMPARADOR RESULTADO FINAL ===');
+    console.log('RoomCloud Auditor: comparador_precios:', data.comparador_precios);
+    console.log('RoomCloud Auditor: cantidad_hoteles_comparacion:', data.cantidad_hoteles_comparacion);
+    console.log('RoomCloud Auditor: === FIN COMPARADOR ===');
+    
   } catch (error) {
     console.error('Error extrayendo comparador de precios:', error);
     data.comparador_precios = 'Error en extracción';
@@ -750,13 +906,15 @@ function extractMetaSearch() {
   
   try {
     console.log('RoomCloud Auditor: Verificando metabuscadores...');
+    console.log('RoomCloud Auditor: URL actual:', window.location.href);
     
     // Buscar en la tabla de metabuscadores específicamente
     const metaTable = document.querySelector('table.table-striped');
-    let activeMetaCount = 0;
+    let trulyActiveMetaCount = 0; // Solo metabuscadores verdaderamente activos (ON + On-Line verde)
     let totalMetaCount = 0;
     let onlineElementsInTable = 0;
     let offlineElementsInTable = 0;
+    let pendingElementsInTable = 0;
     
     if (metaTable) {
       const rows = metaTable.querySelectorAll('tbody tr');
@@ -767,57 +925,71 @@ function extractMetaSearch() {
         if (cells.length >= 3) {
           totalMetaCount++;
           
-          // Verificar si tiene switch activado
+          // Verificar si tiene switch activado (Activation: ON)
           const switchElement = row.querySelector('.bootstrap-switch-on');
           const checkbox = row.querySelector('input.activateMeta:checked');
+          const isActivated = switchElement || checkbox;
           
-          // Verificar si tiene estado online/offline SOLO en esta fila
-          const statusOnline = row.querySelector('span.online');
-          const statusOffline = row.querySelector('span.offline');
+          // Verificar estado específico (Estado: On-Line, Pending, Off-Line)
+          const statusOnline = row.querySelector('span.online'); // Verde - On-Line
+          const statusOffline = row.querySelector('span.offline'); // Rojo - Off-Line
+          
+          // Para detectar Pending (naranja), buscamos elementos que NO sean online ni offline
+          // pero que tengan algún indicador de estado
+          const hasStatusIndicator = row.querySelector('td:nth-child(3) span, td:nth-child(3) i, td:nth-child(3) .fa');
+          const isPending = hasStatusIndicator && !statusOnline && !statusOffline;
           
           if (statusOnline) {
             onlineElementsInTable++;
-            console.log('RoomCloud Auditor: Metabuscador ONLINE encontrado en fila', totalMetaCount);
-          }
-          
-          if (statusOffline) {
+            console.log('RoomCloud Auditor: Metabuscador ONLINE (verde) encontrado en fila', totalMetaCount);
+          } else if (statusOffline) {
             offlineElementsInTable++;
-            console.log('RoomCloud Auditor: Metabuscador OFFLINE encontrado en fila', totalMetaCount);
+            console.log('RoomCloud Auditor: Metabuscador OFFLINE (rojo) encontrado en fila', totalMetaCount);
+          } else if (isPending) {
+            pendingElementsInTable++;
+            console.log('RoomCloud Auditor: Metabuscador PENDING (naranja) encontrado en fila', totalMetaCount);
           }
           
-          if (switchElement || checkbox || statusOnline) {
-            activeMetaCount++;
-            console.log('RoomCloud Auditor: Metabuscador activo encontrado en fila', totalMetaCount);
+          // SOLO considerar como verdaderamente activo si está ACTIVADO Y ONLINE (verde)
+          if (isActivated && statusOnline) {
+            trulyActiveMetaCount++;
+            console.log('RoomCloud Auditor: Metabuscador VERDADERAMENTE ACTIVO encontrado en fila', totalMetaCount, '(ON + On-Line verde)');
+          } else if (isActivated && !statusOnline) {
+            console.log('RoomCloud Auditor: Metabuscador activado pero NO online en fila', totalMetaCount, '(ON pero no On-Line verde)');
           }
         }
       }
     }
     
-    // Buscar elementos online/offline SOLO en la tabla de metabuscadores
+    // Buscar elementos online/offline SOLO en la tabla de metabuscadores para verificación
     const onlineElementsInTableSelector = metaTable ? metaTable.querySelectorAll('span.online') : [];
     const offlineElementsInTableSelector = metaTable ? metaTable.querySelectorAll('span.offline') : [];
     
-    console.log('RoomCloud Auditor: Elementos online en tabla:', onlineElementsInTableSelector.length);
-    console.log('RoomCloud Auditor: Elementos offline en tabla:', offlineElementsInTableSelector.length);
-    console.log('RoomCloud Auditor: Metabuscadores activos en tabla:', activeMetaCount);
+    console.log('RoomCloud Auditor: Elementos online (verde) en tabla:', onlineElementsInTableSelector.length);
+    console.log('RoomCloud Auditor: Elementos offline (rojo) en tabla:', offlineElementsInTableSelector.length);
+    console.log('RoomCloud Auditor: Elementos pending (naranja) en tabla:', pendingElementsInTable);
+    console.log('RoomCloud Auditor: Metabuscadores VERDADERAMENTE activos:', trulyActiveMetaCount);
     console.log('RoomCloud Auditor: Total metabuscadores:', totalMetaCount);
     
-    // Determinar estado de metabuscadores
-    const hasActiveMeta = activeMetaCount > 0;
-    const hasOnlineInTable = onlineElementsInTableSelector.length > 0;
+    // Determinar estado de metabuscadores - SOLO activo si hay al menos uno verdaderamente activo
+    const hasTrulyActiveMeta = trulyActiveMetaCount > 0;
     
-    console.log('RoomCloud Auditor: Tiene metabuscadores activos:', hasActiveMeta);
-    console.log('RoomCloud Auditor: Tiene elementos online en tabla:', hasOnlineInTable);
+    console.log('RoomCloud Auditor: Tiene metabuscadores verdaderamente activos:', hasTrulyActiveMeta);
     
-    if (hasActiveMeta || hasOnlineInTable) {
+    if (hasTrulyActiveMeta) {
       data.metabuscadores = 'Activo';
-      data.cantidad_metabuscadores_activos = Math.max(activeMetaCount, onlineElementsInTableSelector.length);
-      console.log('RoomCloud Auditor: Metabuscadores ACTIVOS con', data.cantidad_metabuscadores_activos, 'metabuscadores');
+      data.cantidad_metabuscadores_activos = trulyActiveMetaCount;
+      console.log('RoomCloud Auditor: Metabuscadores ACTIVOS con', data.cantidad_metabuscadores_activos, 'metabuscadores verdaderamente activos');
     } else {
       data.metabuscadores = 'Inactivo';
       data.cantidad_metabuscadores_activos = 0;
-      console.log('RoomCloud Auditor: Metabuscadores INACTIVOS');
+      console.log('RoomCloud Auditor: Metabuscadores INACTIVOS - No hay metabuscadores con ON + On-Line verde');
     }
+    
+    console.log('RoomCloud Auditor: === METABUSCADORES RESULTADO FINAL ===');
+    console.log('RoomCloud Auditor: metabuscadores:', data.metabuscadores);
+    console.log('RoomCloud Auditor: cantidad_metabuscadores_activos:', data.cantidad_metabuscadores_activos);
+    console.log('RoomCloud Auditor: === FIN METABUSCADORES ===');
     
   } catch (error) {
     console.error('Error extrayendo metabuscadores:', error);
@@ -934,6 +1106,10 @@ async function extractDataFromCurrentPage() {
     case 'test_page':
       data = extractTestPageData();
       break;
+    case 'home':
+      console.log('RoomCloud Auditor: En página home, extrayendo información básica...');
+      data = await extractAuditDataFromCurrentPage();
+      break;
     case 'property_detail':
       data = extractPropertyDetails();
       break;
@@ -973,6 +1149,15 @@ async function extractDataFromCurrentPage() {
   data.fecha_extraccion = new Date().toISOString();
   data.url = window.location.href;
   
+  // Debug: mostrar qué datos se extrajeron
+  console.log('RoomCloud Auditor: Datos extraídos para página', page, ':', data);
+  console.log('RoomCloud Auditor: === RESUMEN DE EXTRACCIÓN ===');
+  console.log('RoomCloud Auditor: Página:', page);
+  console.log('RoomCloud Auditor: URL:', window.location.href);
+  console.log('RoomCloud Auditor: Campos extraídos:', Object.keys(data));
+  console.log('RoomCloud Auditor: Valores extraídos:', data);
+  console.log('RoomCloud Auditor: === FIN RESUMEN ===');
+  
   return data;
 }
 
@@ -983,6 +1168,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'ping') {
     console.log('RoomCloud Auditor: Ping recibido, respondiendo...');
     sendResponse({ success: true, message: 'Content script activo' });
+    return true;
+  }
+  
+  if (request.action === 'checkPageReady') {
+    // Verificar si la página de Revenue Management está lista
+    const url = window.location.href;
+    if (url.includes('revenue_management_calendar.jsp')) {
+      const revenueTable = document.querySelector('table.table');
+      const hasRules = revenueTable && revenueTable.querySelectorAll('tbody tr th a').length > 0;
+      const hasColoredCells = revenueTable && revenueTable.querySelectorAll('td[bgcolor]').length > 0;
+      
+      console.log('RoomCloud Auditor: Verificación de página Revenue:', {
+        hasTable: !!revenueTable,
+        hasRules: hasRules,
+        hasColoredCells: hasColoredCells,
+        ready: hasRules || hasColoredCells
+      });
+      
+      sendResponse({ 
+        ready: hasRules || hasColoredCells,
+        hasTable: !!revenueTable,
+        hasRules: hasRules,
+        hasColoredCells: hasColoredCells
+      });
+    } else {
+      sendResponse({ ready: true });
+    }
     return true;
   }
   
@@ -1013,7 +1225,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       }
     })();
-    return true; // Mantener el canal de comunicación abierto
+  return true; // Mantener el canal de comunicación abierto
   }
   
   if (request.action === 'openHotelSearch') {
@@ -1024,6 +1236,105 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true, result: result });
       } catch (error) {
         console.error('RoomCloud Auditor: Error abriendo búsqueda:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Mantener el canal de comunicación abierto
+  }
+  
+  if (request.action === 'runCompleteAudit') {
+    (async () => {
+      try {
+        console.log('RoomCloud Auditor: Ejecutando auditoría completa desde content script');
+        console.log('RoomCloud Auditor: Parámetros recibidos:', request);
+        const hotelId = request.hotelId;
+        
+        console.log(`RoomCloud Auditor: 🚀 INICIANDO AUDITORÍA COMPLETA para hotel ${hotelId}...`);
+        
+        // Extraer datos de la página actual (esto incluirá navegación automática)
+        const currentData = await extractDataFromCurrentPage();
+        
+        if (currentData && currentData.error) {
+          throw new Error(currentData.error);
+        }
+        
+        // Asegurar que tenemos la información del hotel
+        const hotelInfo = extractHotelInfo();
+        const hotelData = {
+          id_hotel: hotelId,
+          nombre_hotel: hotelInfo.nombre_hotel || 'N/A',
+          estado_auditoria: 'COMPLETADO',
+          fecha_auditoria: new Date().toISOString(),
+          ...currentData
+        };
+        
+        console.log(`🎉 RoomCloud Auditor: AUDITORÍA COMPLETADA para hotel ${hotelId}:`, hotelData);
+        console.log('✅ RoomCloud Auditor: Enviando respuesta exitosa...');
+        sendResponse({ success: true, data: hotelData });
+        console.log('✅ RoomCloud Auditor: Respuesta enviada exitosamente');
+        
+      } catch (error) {
+        console.error(`❌ RoomCloud Auditor: Error en auditoría para hotel ${request.hotelId}:`, error);
+        console.log('❌ RoomCloud Auditor: Enviando respuesta de error...');
+        sendResponse({ 
+          success: false, 
+          error: error.message,
+          data: {
+            id_hotel: request.hotelId,
+            nombre_hotel: 'N/A',
+            estado_auditoria: 'ERROR',
+            error_mensaje: error.message,
+            fecha_auditoria: new Date().toISOString()
+          }
+        });
+        console.log('❌ RoomCloud Auditor: Respuesta de error enviada');
+      }
+    })();
+    return true; // Mantener el canal de comunicación abierto
+  }
+  
+  if (request.action === 'extractPageData') {
+    (async () => {
+      try {
+        console.log(`RoomCloud Auditor: Extrayendo datos de página: ${request.pageName}`);
+        
+        let pageData = {};
+        
+        // Extraer datos según la página actual
+        switch (request.pageName) {
+          case 'property_detail':
+            pageData = await extractPropertyDetails();
+            break;
+          case 'availability':
+            pageData = await extractAvailabilityData();
+            break;
+          case 'users_list':
+            pageData = await extractUsersList();
+            break;
+          case 'channels':
+            pageData = await extractChannels();
+            break;
+          case 'automation':
+            pageData = await extractPMSIntegration();
+            break;
+          case 'payment_gateways':
+            pageData = await extractPaymentGateways();
+            break;
+          case 'revenue_calendar':
+            pageData = await extractRevenueRules();
+            break;
+          case 'rules':
+            pageData = await extractBusinessRules();
+            break;
+          default:
+            pageData = { error: `Página ${request.pageName} no reconocida` };
+        }
+        
+        console.log(`RoomCloud Auditor: Datos extraídos de ${request.pageName}:`, pageData);
+        sendResponse({ success: true, data: pageData });
+        
+      } catch (error) {
+        console.error(`RoomCloud Auditor: Error extrayendo datos de ${request.pageName}:`, error);
         sendResponse({ success: false, error: error.message });
       }
     })();
@@ -1296,4 +1607,120 @@ function showNotification(message, type = 'info') {
   setTimeout(() => {
     notification.remove();
   }, 3000);
+}
+
+// Función para extraer datos de auditoría desde la página actual
+async function extractAuditDataFromCurrentPage() {
+  const data = {};
+  
+  try {
+    console.log('RoomCloud Auditor: Extrayendo datos de auditoría desde la página actual...');
+    
+    // Extraer información del hotel primero
+    const hotelInfo = extractHotelInfo();
+    data.nombre_hotel = hotelInfo.nombre_hotel;
+    data.id_hotel = hotelInfo.id_hotel;
+    
+    // Detectar la página actual y extraer datos correspondientes
+    const currentPage = detectCurrentPage();
+    console.log(`RoomCloud Auditor: Página actual detectada: ${currentPage}`);
+    
+    switch (currentPage) {
+      case 'property_detail':
+        data.property_detail = await extractPropertyDetails();
+        break;
+      case 'availability':
+        data.availability = await extractAvailabilityData();
+        break;
+      case 'users_list':
+        data.users_list = await extractUsersList();
+        break;
+      case 'channels':
+        data.channels = await extractChannels();
+        break;
+      case 'automation':
+        data.automation = await extractPMSIntegration();
+        break;
+      case 'payment_gateways':
+        data.payment_gateways = await extractPaymentGateways();
+        break;
+      case 'revenue_calendar':
+        data.revenue_calendar = await extractRevenueRules();
+        break;
+      case 'rules':
+        data.rules = await extractBusinessRules();
+        break;
+      case 'home':
+        // En home, iniciar auditoría completa con navegación
+        console.log('RoomCloud Auditor: En home.jsp, iniciando auditoría completa con navegación...');
+        return await executeCompleteAuditWithNavigation();
+      default:
+        data.unknown_page = {
+          pagina: currentPage,
+          url_actual: window.location.href,
+          mensaje: 'Página no reconocida para auditoría'
+        };
+    }
+    
+    // Marcar estado de auditoría
+    data.estado_auditoria = 'COMPLETADO';
+    data.fecha_auditoria = new Date().toISOString();
+    data.pagina_auditada = currentPage;
+    
+    console.log('🎉 RoomCloud Auditor: DATOS EXTRAÍDOS de la página actual:', data);
+    console.log('✅ RoomCloud Auditor: Extracción de datos completada');
+    
+  } catch (error) {
+    console.error('❌ Error extrayendo datos de la página actual:', error);
+    data.error = error.message;
+    data.estado_auditoria = 'ERROR';
+  }
+  
+  return data;
+}
+
+// Función para ejecutar auditoría completa con navegación coordinada
+async function executeCompleteAuditWithNavigation() {
+  const data = {};
+  
+  try {
+    console.log('RoomCloud Auditor: Iniciando auditoría completa con navegación coordinada...');
+    
+    // Extraer información del hotel primero
+    const hotelInfo = extractHotelInfo();
+    data.nombre_hotel = hotelInfo.nombre_hotel;
+    data.id_hotel = hotelInfo.id_hotel;
+    
+    // Coordinar auditoría con el background script
+    const auditResult = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        action: 'executeCompleteAudit',
+        hotelId: data.id_hotel
+      }, (response) => {
+        if (response && response.success) {
+          console.log('RoomCloud Auditor: Auditoría completa exitosa');
+          resolve(response.data);
+        } else {
+          reject(new Error(response?.error || 'Error en auditoría completa'));
+        }
+      });
+    });
+    
+    // Combinar datos
+    Object.assign(data, auditResult);
+    
+    // Marcar estado de auditoría
+    data.estado_auditoria = 'COMPLETADO';
+    data.fecha_auditoria = new Date().toISOString();
+    
+    console.log('🎉 RoomCloud Auditor: AUDITORÍA COMPLETA CON NAVEGACIÓN TERMINADA:', data);
+    console.log('✅ RoomCloud Auditor: Auditoría completa del hotel terminada exitosamente');
+    
+  } catch (error) {
+    console.error('❌ Error en auditoría completa con navegación:', error);
+    data.error = error.message;
+    data.estado_auditoria = 'ERROR';
+  }
+  
+  return data;
 }
